@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.0/lucide.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
     <div id="app">
@@ -177,10 +177,14 @@
 
         // App Initialization
         window.onload = async () => {
-            lucide.createIcons();
+            if (typeof lucide !== 'undefined') lucide.createIcons();
             if (currentToken) {
-                await fetchProfile();
-                renderView('dashboard');
+                const success = await fetchProfile();
+                if (success) {
+                    renderView('dashboard');
+                } else {
+                    renderView('auth');
+                }
             } else {
                 renderView('auth');
             }
@@ -255,14 +259,19 @@
         }
 
         async function fetchProfile() {
-            const res = await fetch(`${API_BASE}/users/profile`, {
-                headers: { 'Authorization': `Bearer ${currentToken}` }
-            });
-            if (res.ok) {
-                currentUser = await res.json();
-            } else {
-                handleLogout();
+            try {
+                const res = await fetch(`${API_BASE}/users/profile`, {
+                    headers: { 'Authorization': `Bearer ${currentToken}` }
+                });
+                if (res.ok) {
+                    currentUser = await res.json();
+                    return true;
+                }
+            } catch (e) {
+                console.error(e);
             }
+            handleLogout();
+            return false;
         }
 
         function handleLogout() {
