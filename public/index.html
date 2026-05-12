@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ImmiAssist | Immigration Support Platform</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.0/lucide.min.js"></script>
+</head>
+<body>
+    <div id="app">
+        <!-- Screens will be injected here -->
+    </div>
+
+    <!-- Auth Template -->
+    <template id="auth-template">
+        <div class="auth-container glass">
+            <div class="auth-header">
+                <h1>ImmiAssist</h1>
+                <p id="auth-subtitle">Welcome back! Please login to continue.</p>
+            </div>
+            
+            <div id="login-form">
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="login-email" placeholder="you@example.com">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="login-password" placeholder="••••••••">
+                </div>
+                <button class="btn btn-primary" style="width: 100%" onclick="handleLogin()">
+                    Login <i data-lucide="log-in"></i>
+                </button>
+                <p style="text-align: center; margin-top: 1.5rem; color: var(--text-muted)">
+                    Don't have an account? <a href="#" onclick="toggleAuth(true)" style="color: var(--primary)">Register</a>
+                </p>
+            </div>
+
+            <div id="register-form" style="display: none">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" id="reg-name" placeholder="John Doe">
+                </div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="reg-email" placeholder="you@example.com">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="reg-password" placeholder="••••••••">
+                </div>
+                <button class="btn btn-primary" style="width: 100%" onclick="handleRegister()">
+                    Create Account <i data-lucide="user-plus"></i>
+                </button>
+                <p style="text-align: center; margin-top: 1.5rem; color: var(--text-muted)">
+                    Already have an account? <a href="#" onclick="toggleAuth(false)" style="color: var(--primary)">Login</a>
+                </p>
+            </div>
+        </div>
+    </template>
+
+    <!-- Onboarding Template -->
+    <template id="onboarding-template">
+        <div class="container">
+            <div class="glass onboarding-card">
+                <h2 style="margin-bottom: 1rem">Document Onboarding</h2>
+                <p style="color: var(--text-muted); margin-bottom: 2.5rem">To assist you properly, Jana AI needs to review your primary identification documents.</p>
+                
+                <div class="progress-stepper">
+                    <div class="step" id="step-passport">
+                        <div class="step-icon">1</div>
+                        <span>Passport</span>
+                    </div>
+                    <div class="step" id="step-visa">
+                        <div class="step-icon">2</div>
+                        <span>Visa</span>
+                    </div>
+                    <div class="step" id="step-id">
+                        <div class="step-icon">3</div>
+                        <span>Aadhaar/ID</span>
+                    </div>
+                </div>
+
+                <div id="upload-stage" class="upload-dropzone">
+                    <i data-lucide="upload-cloud" style="width: 48px; height: 48px; color: var(--primary); margin-bottom: 1rem"></i>
+                    <h3 id="stage-title">Upload Passport</h3>
+                    <p style="color: var(--text-muted); margin: 0.5rem 0 1.5rem">Click to browse or drag and drop your document</p>
+                    <input type="file" id="file-input" style="display: none" onchange="processFileUpload(event)">
+                    <button class="btn btn-outline" onclick="document.getElementById('file-input').click()">Choose File</button>
+                </div>
+
+                <div id="onboarding-chat" style="display: none; margin-top: 2rem">
+                    <div class="card glass chat-container">
+                        <div class="chat-messages" id="onboarding-messages">
+                            <!-- AI Messages asking for docs will appear here -->
+                        </div>
+                        <div class="chat-input">
+                            <input type="text" placeholder="Type a message or click upload...">
+                            <button class="btn btn-primary" onclick="sendMessage()">Send</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="onboarding-actions" style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem; display: none">
+                    <button class="btn btn-outline" onclick="skipOnboarding()">Skip for Now</button>
+                    <button class="btn btn-primary" onclick="completeOnboarding()">Go to Dashboard <i data-lucide="arrow-right"></i></button>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Dashboard Template -->
+    <template id="dashboard-template">
+        <div class="dashboard">
+            <div class="sidebar glass">
+                <div style="padding: 1.5rem 1rem; margin-bottom: 2rem">
+                    <h2 style="background: linear-gradient(to right, #818cf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">ImmiAssist</h2>
+                </div>
+                <nav>
+                    <div class="nav-item active" onclick="showDashboardView('overview')">
+                        <i data-lucide="layout-dashboard"></i> Dashboard
+                    </div>
+                    <div class="nav-item" onclick="showDashboardView('cases')">
+                        <i data-lucide="briefcase"></i> My Cases
+                    </div>
+                    <div class="nav-item" onclick="showDashboardView('chat')">
+                        <i data-lucide="message-square"></i> Jana AI
+                    </div>
+                    <div class="nav-item" onclick="showDashboardView('documents')">
+                        <i data-lucide="file-text"></i> Documents
+                    </div>
+                </nav>
+                <div style="position: absolute; bottom: 2rem; width: 230px">
+                    <div class="nav-item" onclick="handleLogout()">
+                        <i data-lucide="log-out"></i> Logout
+                    </div>
+                </div>
+            </div>
+
+            <div class="main-content">
+                <div id="view-overview">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem">
+                        <h1>Welcome Back, <span id="user-name-display">Member</span></h1>
+                        <button class="btn btn-primary" onclick="startNewCase()">
+                            <i data-lucide="plus"></i> New Case
+                        </button>
+                    </div>
+
+                    <div class="case-grid" id="case-list">
+                        <!-- Case cards will be loaded here -->
+                    </div>
+                </div>
+
+                <div id="view-chat" style="display: none">
+                    <h1>Jana AI Guidance</h1>
+                    <div class="card glass chat-container" style="margin-top: 1.5rem">
+                        <div class="chat-messages" id="main-chat-messages"></div>
+                        <div class="chat-input">
+                            <input type="text" id="chat-msg-input" placeholder="Ask about travel prep, port of entry, or your rights...">
+                            <button class="btn btn-primary" id="chat-send-btn">Send</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script>
+        const API_BASE = '/api';
+        let currentUser = null;
+        let currentToken = localStorage.getItem('token');
+        let onboardingStep = 'PASSPORT';
+
+        // App Initialization
+        window.onload = async () => {
+            lucide.createIcons();
+            if (currentToken) {
+                await fetchProfile();
+                renderView('dashboard');
+            } else {
+                renderView('auth');
+            }
+        };
+
+        function renderView(view) {
+            const app = document.getElementById('app');
+            const template = document.getElementById(`${view}-template`);
+            app.innerHTML = '';
+            app.appendChild(template.content.cloneNode(true));
+            lucide.createIcons();
+            
+            if (view === 'dashboard') {
+                document.getElementById('user-name-display').innerText = currentUser.name;
+                loadCases();
+            }
+        }
+
+        function toggleAuth(isReg) {
+            document.getElementById('login-form').style.display = isReg ? 'none' : 'block';
+            document.getElementById('register-form').style.display = isReg ? 'block' : 'none';
+            document.getElementById('auth-subtitle').innerText = isReg ? 'Create your immigration companion account.' : 'Welcome back! Please login to continue.';
+        }
+
+        async function handleLogin() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            try {
+                const res = await fetch(`${API_BASE}/users/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    currentToken = data.token;
+                    currentUser = data.user;
+                    localStorage.setItem('token', currentToken);
+                    renderView('dashboard');
+                } else {
+                    alert(data.message || 'Login failed');
+                }
+            } catch (e) {
+                alert('Connection error');
+            }
+        }
+
+        async function handleRegister() {
+            const name = document.getElementById('reg-name').value;
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-password').value;
+
+            try {
+                const res = await fetch(`${API_BASE}/users/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    currentToken = data.token;
+                    currentUser = data.user;
+                    localStorage.setItem('token', currentToken);
+                    renderView('onboarding');
+                } else {
+                    alert(data.message || 'Registration failed');
+                }
+            } catch (e) {
+                alert('Connection error');
+            }
+        }
+
+        async function fetchProfile() {
+            const res = await fetch(`${API_BASE}/users/profile`, {
+                headers: { 'Authorization': `Bearer ${currentToken}` }
+            });
+            if (res.ok) {
+                currentUser = await res.json();
+            } else {
+                handleLogout();
+            }
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('token');
+            currentToken = null;
+            currentUser = null;
+            renderView('auth');
+        }
+
+        // Onboarding Logic
+        async function processFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                const res = await fetch(`${API_BASE}/documents/onboarding?type=${onboardingStep}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${currentToken}` },
+                    body: formData
+                });
+
+                if (res.ok) {
+                    document.getElementById(`step-${onboardingStep.toLowerCase().replace('ead', 'id').replace('aadhaar', 'id')}`).classList.add('completed');
+                    
+                    if (onboardingStep === 'PASSPORT') {
+                        onboardingStep = 'VISA';
+                        document.getElementById('stage-title').innerText = 'Upload Visa';
+                    } else if (onboardingStep === 'VISA') {
+                        onboardingStep = 'OTHER';
+                        document.getElementById('stage-title').innerText = 'Upload Aadhaar/ID';
+                    } else {
+                        document.getElementById('upload-stage').innerHTML = `
+                            <i data-lucide="check-circle" style="width: 48px; height: 48px; color: var(--accent); margin-bottom: 1rem"></i>
+                            <h3>All Documents Received!</h3>
+                            <p style="color: var(--text-muted); margin: 0.5rem 0 1.5rem">Jana AI is analyzing your documents for your travel plan.</p>
+                        `;
+                        document.getElementById('onboarding-actions').style.display = 'flex';
+                        lucide.createIcons();
+                    }
+                }
+            } catch (e) {
+                alert('Upload failed');
+            }
+        }
+
+        function completeOnboarding() {
+            renderView('dashboard');
+        }
+
+        // Dashboard Logic
+        async function loadCases() {
+            const res = await fetch(`${API_BASE}/cases`, {
+                headers: { 'Authorization': `Bearer ${currentToken}` }
+            });
+            const cases = await res.json();
+            const list = document.getElementById('case-list');
+            list.innerHTML = cases.length ? '' : '<p style="color: var(--text-muted)">No active cases. Create one to get started.</p>';
+            
+            cases.forEach(c => {
+                const card = document.createElement('div');
+                card.className = 'card glass';
+                card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 1rem">
+                        <span class="status-badge status-open">${c.status}</span>
+                        <span style="color: var(--text-muted); font-size: 0.75rem">${c.caseNumber}</span>
+                    </div>
+                    <h3 style="margin-bottom: 0.5rem">${c.caseType.replace('_', ' ')}</h3>
+                    <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.5rem">${c.summary || 'Ongoing immigration assistance.'}</p>
+                    <button class="btn btn-outline" style="width: 100%" onclick="viewCase('${c.id}')">View Details</button>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        async function startNewCase() {
+            const type = prompt("Enter Case Type (TRAVEL_PREP, AIRPORT_LIVE, etc.)", "TRAVEL_PREP");
+            if (!type) return;
+
+            const res = await fetch(`${API_BASE}/cases`, {
+                method: 'POST',
+                headers: { 
+                    'Authorization': `Bearer ${currentToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ caseType: type, summary: 'Manually created case.' })
+            });
+            if (res.ok) loadCases();
+        }
+
+        function showDashboardView(viewName) {
+            const views = ['overview', 'chat'];
+            views.forEach(v => {
+                const el = document.getElementById(`view-${v}`);
+                if (el) el.style.display = v === viewName ? 'block' : 'none';
+            });
+
+            // Handle Nav active state
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+                if (item.innerText.toLowerCase().includes(viewName)) item.classList.add('active');
+            });
+
+            if (viewName === 'chat') setupChat();
+        }
+
+        async function setupChat() {
+            const messages = document.getElementById('main-chat-messages');
+            if (messages.innerHTML !== '') return;
+
+            // Start a session if none exists
+            const casesRes = await fetch(`${API_BASE}/cases`, { headers: { 'Authorization': `Bearer ${currentToken}` } });
+            const cases = await casesRes.json();
+            if (!cases.length) {
+                messages.innerHTML = '<p class="message assistant">Please create a case first to start a guidance session.</p>';
+                return;
+            }
+
+            const sessRes = await fetch(`${API_BASE}/sessions`, {
+                method: 'POST',
+                headers: { 
+                    'Authorization': `Bearer ${currentToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ caseId: cases[0].id, sessionType: 'INTAKE' })
+            });
+            const session = await sessRes.json();
+            window.activeSessionId = session.id;
+            
+            session.messages.forEach(m => {
+                if (m.role !== 'system') appendMessage(m.role, m.content);
+            });
+
+            document.getElementById('chat-send-btn').onclick = async () => {
+                const input = document.getElementById('chat-msg-input');
+                const text = input.value;
+                if (!text) return;
+                
+                input.value = '';
+                appendMessage('user', text);
+
+                const res = await fetch(`${API_BASE}/sessions/${window.activeSessionId}/message`, {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${currentToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ message: text })
+                });
+                const data = await res.json();
+                appendMessage('assistant', data.aiResponse.content);
+            };
+        }
+
+        function appendMessage(role, content) {
+            const list = document.getElementById('main-chat-messages');
+            const msg = document.createElement('div');
+            msg.className = `message ${role}`;
+            msg.innerText = content;
+            list.appendChild(msg);
+            list.scrollTop = list.scrollHeight;
+        }
+
+    </script>
+</body>
+</html>

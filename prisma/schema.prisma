@@ -1,0 +1,387 @@
+// ImmiAssist — Prisma Schema
+// Production-grade immigration assistance platform
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── ENUMS ────────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  MEMBER
+  SUPPORT
+  LAWYER
+  ADMIN
+}
+
+enum CaseType {
+  TRAVEL_PREP
+  TEN_MIN_MODE
+  AIRPORT_LIVE
+  NOTICE_TO_DEPART
+}
+
+enum CaseStatus {
+  OPEN
+  TRAVEL_PREP
+  PREPARATION_READY
+  TEN_MIN_ACTIVE
+  ARRIVING_AT_PORT
+  CLEARED
+  QUESTIONED
+  DETAINED
+  SUPPORT_ASSIGNED
+  LAWYER_ALERTED
+  LAWYER_ACCEPTED
+  CONSULTATION
+  NOTICE_UPLOADED
+  RISK_CLASSIFIED
+  RESOLVED
+  CLOSED
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum DocumentType {
+  PASSPORT
+  VISA
+  I797
+  I20
+  NOTICE
+  EAD
+  DS2019
+  OTHER
+}
+
+enum SessionType {
+  TEN_MIN
+  AIRPORT_LIVE
+  INTAKE
+}
+
+enum SessionStatus {
+  ACTIVE
+  COMPLETED
+  ESCALATED
+  CLOSED
+}
+
+enum EventType {
+  CASE_CREATED
+  TRAVEL_CREATED
+  PREP_PACK_GENERATED
+  TEN_MIN_STARTED
+  ARRIVAL_MARKED
+  INSPECTION_STARTED
+  CLEARED
+  QUESTIONED
+  DETAINED
+  SUPPORT_ASSIGNED
+  LAWYER_ALERTED
+  LAWYER_ACCEPTED
+  NOTICE_UPLOADED
+  RISK_CLASSIFIED
+  CONSULTATION_SCHEDULED
+  CASE_RESOLVED
+  CASE_CLOSED
+  AI_RESPONSE_GENERATED
+  DOCUMENT_UPLOADED
+  STATUS_CHANGED
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  READ
+}
+
+enum DeliveryChannel {
+  IN_APP
+  SMS
+  EMAIL
+  PUSH
+}
+
+// ─── USER ────────────────────────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  phone        String?
+  passwordHash String   @map("password_hash")
+  role         UserRole @default(MEMBER)
+  language     String   @default("English")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  profile       MemberProfile?
+  cases         Case[]           @relation("MemberCases")
+  supportCases  Case[]           @relation("SupportAgentCases")
+  lawyerCases   Case[]           @relation("LawyerCases")
+  sessions      GuidanceSession[]
+  notifications Notification[]
+  auditLogs     AuditLog[]
+
+  @@map("users")
+}
+
+// ─── MEMBER PROFILE ──────────────────────────────────────────────────────────
+
+model MemberProfile {
+  id                  String   @id @default(uuid())
+  userId              String   @unique @map("user_id")
+  passportNumber      String?  @map("passport_number")
+  nationality         String?
+  visaType            String?  @map("visa_type")
+  visaExpiry          DateTime? @map("visa_expiry")
+  employerOrUniversity String?  @map("employer_or_university")
+  portOfEntry         String?  @map("port_of_entry")
+  preferredLanguage   String   @default("English") @map("preferred_language")
+  emergencyContact    String?  @map("emergency_contact")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("member_profiles")
+}
+
+// ─── CASE ────────────────────────────────────────────────────────────────────
+
+model Case {
+  id                String     @id @default(uuid())
+  caseNumber        String     @unique @map("case_number")
+  userId            String     @map("user_id")
+  caseType          CaseType   @map("case_type")
+  status            CaseStatus @default(OPEN)
+  riskLevel         RiskLevel  @default(LOW) @map("risk_level")
+  assignedSupportId String?    @map("assigned_support_id")
+  assignedLawyerId  String?    @map("assigned_lawyer_id")
+  travelPlanId      String?    @map("travel_plan_id")
+  summary           String?
+  aiContext         Json?      @map("ai_context")
+  closedAt          DateTime?  @map("closed_at")
+  createdAt         DateTime   @default(now()) @map("created_at")
+  updatedAt         DateTime   @updatedAt @map("updated_at")
+
+  // Relations
+  member        User              @relation("MemberCases", fields: [userId], references: [id])
+  supportAgent  User?             @relation("SupportAgentCases", fields: [assignedSupportId], references: [id])
+  lawyer        User?             @relation("LawyerCases", fields: [assignedLawyerId], references: [id])
+  travelPlan    TravelPlan?
+  events        CaseEvent[]
+  documents     Document[]
+  sessions      GuidanceSession[]
+  notifications Notification[]
+  lawyerAssignment LawyerAssignment?
+  statusHistory CaseStatusHistory[]
+
+  @@map("cases")
+}
+
+// ─── CASE EVENT ──────────────────────────────────────────────────────────────
+
+model CaseEvent {
+  id        String    @id @default(uuid())
+  caseId    String    @map("case_id")
+  eventType EventType @map("event_type")
+  actorType String    @default("SYSTEM") @map("actor_type")
+  actorId   String?   @map("actor_id")
+  metadata  Json?
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@map("case_events")
+}
+
+// ─── CASE STATUS HISTORY ─────────────────────────────────────────────────────
+
+model CaseStatusHistory {
+  id        String     @id @default(uuid())
+  caseId    String     @map("case_id")
+  oldStatus CaseStatus? @map("old_status")
+  newStatus CaseStatus  @map("new_status")
+  remarks   String?
+  createdAt DateTime   @default(now()) @map("created_at")
+
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@map("case_status_history")
+}
+
+// ─── TRAVEL PLAN ─────────────────────────────────────────────────────────────
+
+model TravelPlan {
+  id              String   @id @default(uuid())
+  caseId          String   @unique @map("case_id")
+  fromLocation    String   @map("from_location")
+  toLocation      String   @map("to_location")
+  airline         String?
+  flightNumber    String?  @map("flight_number")
+  portOfEntry     String   @map("port_of_entry")
+  arrivalDatetime DateTime @map("arrival_datetime")
+  visaType        String   @map("visa_type")
+  purposeOfTravel String?  @map("purpose_of_travel")
+  prepPack        Json?    @map("prep_pack")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@map("travel_plans")
+}
+
+// ─── DOCUMENT ────────────────────────────────────────────────────────────────
+
+model Document {
+  id          String       @id @default(uuid())
+  caseId      String       @map("case_id")
+  type        DocumentType
+  fileUrl     String       @map("file_url")
+  fileName    String?      @map("file_name")
+  mimeType    String?      @map("mime_type")
+  metadata    Json?
+  aiExtracted Json?        @map("ai_extracted")
+  createdAt   DateTime     @default(now()) @map("created_at")
+
+  // Relations
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@map("documents")
+}
+
+// ─── GUIDANCE SESSION ────────────────────────────────────────────────────────
+
+model GuidanceSession {
+  id          String        @id @default(uuid())
+  caseId      String        @map("case_id")
+  userId      String        @map("user_id")
+  sessionType SessionType   @map("session_type")
+  steps       Json?
+  voiceScript String?       @map("voice_script")
+  status      SessionStatus @default(ACTIVE)
+  messages    Json?         @default("[]")
+  language    String        @default("English")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("guidance_sessions")
+}
+
+// ─── LAWYER ──────────────────────────────────────────────────────────────────
+
+model Lawyer {
+  id             String   @id @default(uuid())
+  userId         String   @unique @map("user_id")
+  name           String
+  specialization String[]
+  location       String?
+  languages      String[]
+  barNumber      String?  @map("bar_number")
+  isAvailable    Boolean  @default(true) @map("is_available")
+  rating         Float    @default(0)
+  casesHandled   Int      @default(0) @map("cases_handled")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  assignments LawyerAssignment[]
+
+  @@map("lawyers")
+}
+
+// ─── LAWYER ASSIGNMENT ───────────────────────────────────────────────────────
+
+model LawyerAssignment {
+  id          String   @id @default(uuid())
+  caseId      String   @unique @map("case_id")
+  lawyerId    String   @map("lawyer_id")
+  alertedAt   DateTime @default(now()) @map("alerted_at")
+  acceptedAt  DateTime? @map("accepted_at")
+  isAccepted  Boolean  @default(false) @map("is_accepted")
+  consultationAt DateTime? @map("consultation_at")
+  notes       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  lawyer Lawyer @relation(fields: [lawyerId], references: [id])
+
+  @@map("lawyer_assignments")
+}
+
+// ─── SUPPORT AGENT ───────────────────────────────────────────────────────────
+
+model SupportAgent {
+  id          String   @id @default(uuid())
+  userId      String   @unique @map("user_id")
+  name        String
+  isAvailable Boolean  @default(true) @map("is_available")
+  languages   String[]
+  activeCases Int      @default(0) @map("active_cases")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("support_agents")
+}
+
+// ─── NOTIFICATION ────────────────────────────────────────────────────────────
+
+model Notification {
+  id        String             @id @default(uuid())
+  userId    String             @map("user_id")
+  caseId    String?            @map("case_id")
+  type      String
+  title     String
+  message   String
+  channel   DeliveryChannel    @default(IN_APP)
+  status    NotificationStatus @default(PENDING)
+  metadata  Json?
+  sentAt    DateTime?          @map("sent_at")
+  readAt    DateTime?          @map("read_at")
+  createdAt DateTime           @default(now()) @map("created_at")
+
+  // Relations
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  case Case? @relation(fields: [caseId], references: [id])
+
+  @@map("notifications")
+}
+
+// ─── AUDIT LOG ───────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String?  @map("actor_id")
+  actorType  String   @default("SYSTEM") @map("actor_type")
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id")
+  payload    Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  actor User? @relation(fields: [actorId], references: [id])
+
+  @@map("audit_logs")
+}
