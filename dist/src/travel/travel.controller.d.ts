@@ -16,7 +16,7 @@ export declare class TravelController {
         arrivalDatetime: Date;
         visaType: string;
         purposeOfTravel: string | null;
-        prepPack: import("@prisma/client/runtime/client").JsonValue | null;
+        prepPack: import("@prisma/client/runtime/library").JsonValue | null;
     }>;
     findByCase(caseId: string): Promise<{
         id: string;
@@ -31,7 +31,7 @@ export declare class TravelController {
         arrivalDatetime: Date;
         visaType: string;
         purposeOfTravel: string | null;
-        prepPack: import("@prisma/client/runtime/client").JsonValue | null;
+        prepPack: import("@prisma/client/runtime/library").JsonValue | null;
     }>;
     generatePrepPack(req: any, id: string): Promise<{
         id: string;
@@ -46,6 +46,6 @@ export declare class TravelController {
         arrivalDatetime: Date;
         visaType: string;
         purposeOfTravel: string | null;
-        prepPack: import("@prisma/client/runtime/client").JsonValue | null;
+        prepPack: import("@prisma/client/runtime/library").JsonValue | null;
     }>;
 }

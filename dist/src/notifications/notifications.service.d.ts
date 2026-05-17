@@ -8,7 +8,7 @@ export declare class NotificationsService {
         userId: string;
         status: import("@prisma/client").$Enums.NotificationStatus;
         caseId: string | null;
-        metadata: import("@prisma/client/runtime/client").JsonValue | null;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
         type: string;
         title: string;
         message: string;
@@ -22,7 +22,7 @@ export declare class NotificationsService {
         userId: string;
         status: import("@prisma/client").$Enums.NotificationStatus;
         caseId: string | null;
-        metadata: import("@prisma/client/runtime/client").JsonValue | null;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
         type: string;
         title: string;
         message: string;
@@ -43,7 +43,7 @@ export declare class NotificationsService {
         userId: string;
         status: import("@prisma/client").$Enums.NotificationStatus;
         caseId: string | null;
-        metadata: import("@prisma/client/runtime/client").JsonValue | null;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
         type: string;
         title: string;
         message: string;

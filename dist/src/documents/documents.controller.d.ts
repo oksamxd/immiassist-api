@@ -6,55 +6,55 @@ export declare class DocumentsController {
         id: string;
         createdAt: Date;
         caseId: string;
-        metadata: import("@prisma/client/runtime/client").JsonValue | null;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
         type: import("@prisma/client").$Enums.DocumentType;
         fileUrl: string;
         fileName: string | null;
         mimeType: string | null;
-        aiExtracted: import("@prisma/client/runtime/client").JsonValue | null;
+        aiExtracted: import("@prisma/client/runtime/library").JsonValue | null;
     }>;
     uploadOnboarding(req: any, file: Express.Multer.File, docType: string): Promise<{
         id: string;
         createdAt: Date;
         caseId: string;
-        metadata: import("@prisma/client/runtime/client").JsonValue | null;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
         type: import("@prisma/client").$Enums.DocumentType;
         fileUrl: string;
         fileName: string | null;
         mimeType: string | null;
-        aiExtracted: import("@prisma/client/runtime/client").JsonValue | null;
+        aiExtracted: import("@prisma/client/runtime/library").JsonValue | null;
     }>;
     findByCase(caseId: string): Promise<{
         id: string;
         createdAt: Date;
         caseId: string;
-        metadata: import("@prisma/client/runtime/client").JsonValue | null;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
         type: import("@prisma/client").$Enums.DocumentType;
         fileUrl: string;
         fileName: string | null;
         mimeType: string | null;
-        aiExtracted: import("@prisma/client/runtime/client").JsonValue | null;
+        aiExtracted: import("@prisma/client/runtime/library").JsonValue | null;
     }[]>;
     findMine(req: any): Promise<{
         id: string;
         createdAt: Date;
         caseId: string;
-        metadata: import("@prisma/client/runtime/client").JsonValue | null;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
         type: import("@prisma/client").$Enums.DocumentType;
         fileUrl: string;
         fileName: string | null;
         mimeType: string | null;
-        aiExtracted: import("@prisma/client/runtime/client").JsonValue | null;
+        aiExtracted: import("@prisma/client/runtime/library").JsonValue | null;
     }[]>;
     findOne(id: string): Promise<{
         id: string;
         createdAt: Date;
         caseId: string;
-        metadata: import("@prisma/client/runtime/client").JsonValue | null;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
         type: import("@prisma/client").$Enums.DocumentType;
         fileUrl: string;
         fileName: string | null;
         mimeType: string | null;
-        aiExtracted: import("@prisma/client/runtime/client").JsonValue | null;
+        aiExtracted: import("@prisma/client/runtime/library").JsonValue | null;
     }>;
 }

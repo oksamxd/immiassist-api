@@ -16,7 +16,7 @@ export declare class AuditService {
         action: string;
         entityType: string;
         entityId: string;
-        payload: import("@prisma/client/runtime/client").JsonValue | null;
+        payload: import("@prisma/client/runtime/library").JsonValue | null;
         actorId: string | null;
     }>;
 }

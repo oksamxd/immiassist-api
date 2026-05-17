@@ -21,7 +21,7 @@ export declare class SessionsService {
         status: import("@prisma/client").$Enums.SessionStatus;
         caseId: string;
         sessionType: import("@prisma/client").$Enums.SessionType;
-        steps: import("@prisma/client/runtime/client").JsonValue | null;
+        steps: import("@prisma/client/runtime/library").JsonValue | null;
         voiceScript: string | null;
     }>;
     findOne(id: string): Promise<{
@@ -33,9 +33,9 @@ export declare class SessionsService {
         status: import("@prisma/client").$Enums.SessionStatus;
         caseId: string;
         sessionType: import("@prisma/client").$Enums.SessionType;
-        steps: import("@prisma/client/runtime/client").JsonValue | null;
+        steps: import("@prisma/client/runtime/library").JsonValue | null;
         voiceScript: string | null;
-        messages: import("@prisma/client/runtime/client").JsonValue | null;
+        messages: import("@prisma/client/runtime/library").JsonValue | null;
     }>;
     sendMessage(sessionId: string, userId: string, message: string): Promise<{
         userMessage: {
@@ -57,9 +57,9 @@ export declare class SessionsService {
         status: import("@prisma/client").$Enums.SessionStatus;
         caseId: string;
         sessionType: import("@prisma/client").$Enums.SessionType;
-        steps: import("@prisma/client/runtime/client").JsonValue | null;
+        steps: import("@prisma/client/runtime/library").JsonValue | null;
         voiceScript: string | null;
-        messages: import("@prisma/client/runtime/client").JsonValue | null;
+        messages: import("@prisma/client/runtime/library").JsonValue | null;
     }>;
     findByUser(userId: string): Promise<({
         case: {
@@ -76,8 +76,8 @@ export declare class SessionsService {
         status: import("@prisma/client").$Enums.SessionStatus;
         caseId: string;
         sessionType: import("@prisma/client").$Enums.SessionType;
-        steps: import("@prisma/client/runtime/client").JsonValue | null;
+        steps: import("@prisma/client/runtime/library").JsonValue | null;
         voiceScript: string | null;
-        messages: import("@prisma/client/runtime/client").JsonValue | null;
+        messages: import("@prisma/client/runtime/library").JsonValue | null;
     })[]>;
 }

@@ -18,7 +18,7 @@ export declare class WorkflowService {
         assignedLawyerId: string | null;
         travelPlanId: string | null;
         summary: string | null;
-        aiContext: import("@prisma/client/runtime/client").JsonValue | null;
+        aiContext: import("@prisma/client/runtime/library").JsonValue | null;
         closedAt: Date | null;
     }>;
 }
