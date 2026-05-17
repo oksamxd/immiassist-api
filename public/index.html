@@ -66,11 +66,16 @@
     <!-- Onboarding Template -->
     <template id="onboarding-template">
         <div class="container">
-            <div class="glass onboarding-card">
-                <h2 style="margin-bottom: 1rem">Document Onboarding</h2>
-                <p style="color: var(--text-muted); margin-bottom: 2.5rem">To assist you properly, Jana AI needs to review your primary identification documents.</p>
+            <div class="glass onboarding-card" style="max-width: 800px; margin: 5vh auto; padding: 2.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem">
+                    <div>
+                        <h2 style="background: linear-gradient(to right, #818cf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Jana AI Onboarding</h2>
+                        <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem">Chat with Jana AI to set up your profile and documents.</p>
+                    </div>
+                    <button class="btn btn-outline" style="padding: 0.5rem 1rem; font-size: 0.875rem;" onclick="completeOnboarding()">Skip to Dashboard <i data-lucide="arrow-right"></i></button>
+                </div>
                 
-                <div class="progress-stepper">
+                <div class="progress-stepper" style="margin-bottom: 2rem">
                     <div class="step" id="step-passport">
                         <div class="step-icon">1</div>
                         <span>Passport</span>
@@ -85,28 +90,25 @@
                     </div>
                 </div>
 
-                <div id="upload-stage" class="upload-dropzone">
-                    <i data-lucide="upload-cloud" style="width: 48px; height: 48px; color: var(--primary); margin-bottom: 1rem"></i>
-                    <h3 id="stage-title">Upload Passport</h3>
-                    <p style="color: var(--text-muted); margin: 0.5rem 0 1.5rem">Click to browse or drag and drop your document</p>
-                    <input type="file" id="file-input" style="display: none" onchange="processFileUpload(event)">
-                    <button class="btn btn-outline" onclick="document.getElementById('file-input').click()">Choose File</button>
-                </div>
-
-                <div id="onboarding-chat" style="display: none; margin-top: 2rem">
-                    <div class="card glass chat-container">
-                        <div class="chat-messages" id="onboarding-messages">
-                            <!-- AI Messages asking for docs will appear here -->
-                        </div>
-                        <div class="chat-input">
-                            <input type="text" placeholder="Type a message or click upload...">
-                            <button class="btn btn-primary" onclick="sendMessage()">Send</button>
-                        </div>
+                <!-- Conversational Onboarding Chatbot -->
+                <div class="card glass chat-container" style="height: 450px;">
+                    <div class="chat-messages" id="onboarding-messages">
+                        <!-- Messages will be dynamically injected here -->
+                    </div>
+                    
+                    <div class="chat-input" style="align-items: center;">
+                        <input type="file" id="onboarding-file-input" style="display: none" onchange="processOnboardingUpload(event)">
+                        <button class="btn btn-outline" style="padding: 0.75rem; border-radius: 50%; min-width: 48px; height: 48px; justify-content: center;" onclick="document.getElementById('onboarding-file-input').click()" title="Upload Document">
+                            <i data-lucide="paperclip"></i>
+                        </button>
+                        <input type="text" id="onboarding-chat-input" placeholder="Type a message to Jana AI..." onkeypress="handleOnboardingKey(event)">
+                        <button class="btn btn-primary" onclick="sendOnboardingMessage()" style="border-radius: 2rem; padding: 0.75rem 1.5rem;">
+                            Send <i data-lucide="send"></i>
+                        </button>
                     </div>
                 </div>
 
-                <div id="onboarding-actions" style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem; display: none">
-                    <button class="btn btn-outline" onclick="skipOnboarding()">Skip for Now</button>
+                <div id="onboarding-actions" style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 1rem; display: none">
                     <button class="btn btn-primary" onclick="completeOnboarding()">Go to Dashboard <i data-lucide="arrow-right"></i></button>
                 </div>
             </div>
@@ -225,6 +227,13 @@
                     }
                     loadCases();
                 }
+
+                if (view === 'onboarding') {
+                    onboardingStep = 'PASSPORT';
+                    setTimeout(() => {
+                        initOnboardingChat();
+                    }, 50);
+                }
             } catch (e) {
                 console.error('RenderView error:', e);
             }
@@ -304,10 +313,83 @@
         }
 
         // Onboarding Logic
-        async function processFileUpload(e) {
+        function initOnboardingChat() {
+            const list = document.getElementById('onboarding-messages');
+            if (list) {
+                list.innerHTML = '';
+                appendOnboardingMessage('assistant', `Hello ${currentUser ? currentUser.name : 'there'}! 👋 I am Jana AI, your immigration companion. 
+
+To help you prepare for your travel, visa interviews, or port of entry inspection, I need to understand your travel plans.
+
+Please upload your **Passport** using the attachment 📎 button below to automatically extract your details! You can also chat with me here if you have any questions.`);
+            }
+        }
+
+        function appendOnboardingMessage(role, content) {
+            const list = document.getElementById('onboarding-messages');
+            if (!list) return;
+            const msg = document.createElement('div');
+            msg.className = `message ${role}`;
+            msg.innerText = content;
+            list.appendChild(msg);
+            list.scrollTop = list.scrollHeight;
+        }
+
+        function handleOnboardingKey(e) {
+            if (e.key === 'Enter') {
+                sendOnboardingMessage();
+            }
+        }
+
+        async function sendOnboardingMessage() {
+            const input = document.getElementById('onboarding-chat-input');
+            if (!input) return;
+            const text = input.value.trim();
+            if (!text) return;
+
+            input.value = '';
+            appendOnboardingMessage('user', text);
+
+            try {
+                const res = await fetch(`${API_BASE}/sessions/onboarding-chat`, {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${currentToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ message: text })
+                });
+                
+                if (res.ok) {
+                    const data = await res.json();
+                    appendOnboardingMessage('assistant', data.aiResponse);
+                } else {
+                    let fallbackText = "I understand! Let's get your travel profile ready. Please upload your next document using the attachment 📎 button:";
+                    if (onboardingStep === 'PASSPORT') {
+                        fallbackText = "Please upload your **Passport** using the attachment 📎 button so I can analyze and verify your passport details!";
+                    } else if (onboardingStep === 'VISA') {
+                        fallbackText = "Please upload your **Visa** document using the attachment 📎 button so I can register your visa classification and expiry date!";
+                    } else if (onboardingStep === 'OTHER') {
+                        fallbackText = "Please upload your **Aadhaar/ID** card using the attachment 📎 button so we can complete your identity check and go to the dashboard!";
+                    } else {
+                        fallbackText = "All documents have been successfully uploaded! Click the 'Go to Dashboard' button below to explore ImmiAssist.";
+                    }
+                    appendOnboardingMessage('assistant', fallbackText);
+                }
+            } catch (e) {
+                let fallbackText = "That sounds interesting! Let's verify your documents first. Please click the attachment 📎 button to upload your passport.";
+                if (onboardingStep === 'VISA') fallbackText = "Got it! Please attach your visa document next using the attachment 📎 button.";
+                if (onboardingStep === 'OTHER') fallbackText = "Understood! Please attach your Aadhaar/ID card next using the attachment 📎 button.";
+                appendOnboardingMessage('assistant', fallbackText);
+            }
+        }
+
+        async function processOnboardingUpload(e) {
             const file = e.target.files[0];
             if (!file) return;
 
+            appendOnboardingMessage('user', `📎 Uploading file: ${file.name}...`);
+            
             const formData = new FormData();
             formData.append('file', file);
             
@@ -319,26 +401,36 @@
                 });
 
                 if (res.ok) {
-                    document.getElementById(`step-${onboardingStep.toLowerCase().replace('ead', 'id').replace('aadhaar', 'id')}`).classList.add('completed');
+                    let stepId = onboardingStep.toLowerCase();
+                    if (stepId === 'other') stepId = 'id';
+                    
+                    const stepEl = document.getElementById(`step-${stepId}`);
+                    if (stepEl) {
+                        stepEl.classList.add('completed');
+                    }
                     
                     if (onboardingStep === 'PASSPORT') {
                         onboardingStep = 'VISA';
-                        document.getElementById('stage-title').innerText = 'Upload Visa';
+                        appendOnboardingMessage('assistant', `✅ Successfully analyzed Passport! Your passport details are registered.
+
+Now, please upload your **Visa** document so I can extract the class of entry and validity dates!`);
                     } else if (onboardingStep === 'VISA') {
                         onboardingStep = 'OTHER';
-                        document.getElementById('stage-title').innerText = 'Upload Aadhaar/ID';
+                        appendOnboardingMessage('assistant', `✅ Successfully analyzed Visa! Everything looks great.
+
+Finally, please upload your **Aadhaar/ID** card to complete your identity verification!`);
                     } else {
-                        document.getElementById('upload-stage').innerHTML = `
-                            <i data-lucide="check-circle" style="width: 48px; height: 48px; color: var(--accent); margin-bottom: 1rem"></i>
-                            <h3>All Documents Received!</h3>
-                            <p style="color: var(--text-muted); margin: 0.5rem 0 1.5rem">Jana AI is analyzing your documents for your travel plan.</p>
-                        `;
-                        document.getElementById('onboarding-actions').style.display = 'flex';
-                        lucide.createIcons();
+                        appendOnboardingMessage('assistant', `🎉 Excellent! All documents (Passport, Visa, and ID) have been successfully received and analyzed by Jana AI.
+
+I've automatically created your initial travel plan and case log. You are fully prepared to go to your dashboard!`);
+                        const actionsEl = document.getElementById('onboarding-actions');
+                        if (actionsEl) actionsEl.style.display = 'flex';
                     }
+                } else {
+                    appendOnboardingMessage('assistant', `❌ Ah, I encountered an issue processing that file. Please make sure it is a valid image or PDF, and try uploading it again.`);
                 }
             } catch (e) {
-                alert('Upload failed');
+                appendOnboardingMessage('assistant', `❌ Connection error during upload. Please try again.`);
             }
         }
 
