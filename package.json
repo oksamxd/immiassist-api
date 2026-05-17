@@ -8,6 +8,7 @@
   "scripts": {
     "postinstall": "prisma generate",
     "build": "nest build && tsc prisma/seed.ts --outDir dist/prisma --esModuleInterop --skipLibCheck",
+    "build:render": "npm run build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
