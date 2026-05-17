@@ -177,25 +177,56 @@
 
         // App Initialization
         window.onload = async () => {
-            lucide.createIcons();
-            if (currentToken) {
-                await fetchProfile();
-                renderView('dashboard');
-            } else {
+            try {
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+            } catch (e) {
+                console.error('Lucide initialization error:', e);
+            }
+
+            try {
+                if (currentToken) {
+                    await fetchProfile();
+                    renderView('dashboard');
+                } else {
+                    renderView('auth');
+                }
+            } catch (e) {
+                console.error('Auth initialization error:', e);
+                localStorage.removeItem('token');
+                currentToken = null;
                 renderView('auth');
             }
         };
 
         function renderView(view) {
-            const app = document.getElementById('app');
-            const template = document.getElementById(`${view}-template`);
-            app.innerHTML = '';
-            app.appendChild(template.content.cloneNode(true));
-            lucide.createIcons();
-            
-            if (view === 'dashboard') {
-                document.getElementById('user-name-display').innerText = currentUser.name;
-                loadCases();
+            try {
+                const app = document.getElementById('app');
+                const template = document.getElementById(`${view}-template`);
+                if (!template) {
+                    console.error(`Template not found: ${view}-template`);
+                    return;
+                }
+                app.innerHTML = '';
+                app.appendChild(template.content.cloneNode(true));
+                
+                try {
+                    if (typeof lucide !== 'undefined') {
+                        lucide.createIcons();
+                    }
+                } catch (e) {
+                    console.error('Lucide render error:', e);
+                }
+                
+                if (view === 'dashboard') {
+                    if (currentUser && currentUser.name) {
+                        document.getElementById('user-name-display').innerText = currentUser.name;
+                    }
+                    loadCases();
+                }
+            } catch (e) {
+                console.error('RenderView error:', e);
             }
         }
 
