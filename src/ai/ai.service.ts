@@ -7,7 +7,7 @@ export class AiService {
   private apiKey: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.apiKey = this.configService.get<string>('GEMINI_API_KEY') || '';
+    this.apiKey = this.configService.get<string>('OPENAI_API_KEY') || '';
   }
 
   private get isConfigured(): boolean {
@@ -23,22 +23,27 @@ export class AiService {
       const systemPrompt = `You are Jana AI, an immigration assistance expert. You help users navigate US immigration processes including port of entry procedures, visa requirements, rights during inspection, and emergency guidance. Be concise, accurate, and reassuring. Context: ${JSON.stringify(context)}`;
 
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${this.apiKey}`,
+        'https://api.openai.com/v1/chat/completions',
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.apiKey}`
+          },
           body: JSON.stringify({
-            contents: [
-              { role: 'user', parts: [{ text: `${systemPrompt}\n\nUser: ${userMessage}` }] },
+            model: 'gpt-4o-mini',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userMessage }
             ],
           }),
         },
       );
 
       const data = await response.json();
-      return data?.candidates?.[0]?.content?.parts?.[0]?.text || this.getMockGuidance(userMessage);
+      return data?.choices?.[0]?.message?.content || this.getMockGuidance(userMessage);
     } catch (error) {
-      this.logger.error('Gemini API error', error);
+      this.logger.error('OpenAI API error', error);
       return this.getMockGuidance(userMessage);
     }
   }
@@ -60,26 +65,33 @@ export class AiService {
       const prompt = `Generate a detailed immigration travel preparation guide for: Visa type: ${travelPlan.visaType}, From: ${travelPlan.fromLocation}, To: ${travelPlan.toLocation}, Port of Entry: ${travelPlan.portOfEntry}. Include checklist, tips, and what to expect at the port of entry. Return as JSON with keys: summary, checklist (array of items), portTips (array), inspectionGuide.`;
 
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${this.apiKey}`,
+        'https://api.openai.com/v1/chat/completions',
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.apiKey}`
+          },
           body: JSON.stringify({
-            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            model: 'gpt-4o-mini',
+            response_format: { type: 'json_object' },
+            messages: [
+              { role: 'system', content: 'You are a helpful travel assistant. You strictly output raw JSON.' },
+              { role: 'user', content: prompt }
+            ],
           }),
         },
       );
 
       const data = await response.json();
-      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      const text = data?.choices?.[0]?.message?.content || '';
       try {
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        return jsonMatch ? JSON.parse(jsonMatch[0]) : { summary: text };
+        return JSON.parse(text);
       } catch {
         return { summary: text };
       }
     } catch (error) {
-      this.logger.error('Gemini prep pack error', error);
+      this.logger.error('OpenAI prep pack error', error);
       return { summary: 'AI prep pack generation failed. Using default checklist.' };
     }
   }
