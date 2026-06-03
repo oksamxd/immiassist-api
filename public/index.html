@@ -32,13 +32,13 @@
                 <!-- Sign In Panel -->
                 <div id="signin-panel">
                     <div class="auth-tabs">
-                        <div class="auth-tab active" onclick="setRole('MEMBER')">Member</div>
-                        <div class="auth-tab" onclick="setRole('LEGAL_ASSOCIATE')">Associate</div>
-                        <div class="auth-tab" onclick="setRole('LAWYER')">Lawyer</div>
+                        <div class="auth-tab active" onclick="setRole('MEMBER', this)">Member</div>
+                        <div class="auth-tab" onclick="setRole('LEGAL_ASSOCIATE', this)">Associate</div>
+                        <div class="auth-tab" onclick="setRole('LAWYER', this)">Lawyer</div>
                     </div>
                     <div class="form-group">
                         <label>Email Address</label>
-                        <input type="email" id="login-email" class="form-control" placeholder="Enter your email">
+                        <input type="email" id="login-email" class="form-control" placeholder="Enter your email" value="member@immiassist.io">
                     </div>
                     <div class="form-group">
                         <label>Password</label>
@@ -209,10 +209,10 @@
             lucide.createIcons();
         }
 
-        function setRole(role) {
+        function setRole(role, el) {
             state.activeRole = role;
             document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
-            event.target.classList.add('active');
+            if (el) el.classList.add('active');
             const emailMap = {
                 'MEMBER': 'member@immiassist.io',
                 'LEGAL_ASSOCIATE': 'associate@immiassist.io',
