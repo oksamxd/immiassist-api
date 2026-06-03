@@ -17,67 +17,87 @@
     <!-- Auth View -->
     <template id="auth-view">
         <div class="auth-wrapper">
-            <div class="auth-card glass">
+            <div class="auth-card glass" style="max-width: 520px;">
                 <div class="auth-header">
                     <h1>ImmiAssist</h1>
                     <p style="color: var(--text-muted)">Immigration Operations Platform</p>
                 </div>
 
-                <!-- Mode toggle: Sign In / Sign Up -->
+                <!-- Mode toggle -->
                 <div class="auth-mode-toggle">
                     <button class="mode-btn active" id="mode-signin" onclick="switchAuthMode('signin')">Sign In</button>
                     <button class="mode-btn" id="mode-signup" onclick="switchAuthMode('signup')">Sign Up</button>
                 </div>
 
-                <!-- Sign In Panel -->
+                <!-- ── SIGN IN PANEL ── -->
                 <div id="signin-panel">
-                    <div class="auth-tabs">
-                        <div class="auth-tab active" onclick="setRole('MEMBER', this)">Member</div>
-                        <div class="auth-tab" onclick="setRole('LEGAL_ASSOCIATE', this)">Associate</div>
-                        <div class="auth-tab" onclick="setRole('LAWYER', this)">Lawyer</div>
+                    <!-- Quick Access cards (bypass form fields entirely) -->
+                    <p style="font-size:0.78rem;color:var(--text-muted);text-align:center;margin-bottom:0.75rem;letter-spacing:0.04em;text-transform:uppercase">Quick Access</p>
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;margin-bottom:1.5rem">
+                        <button class="quick-login-btn" onclick="loginAs('member@immiassist.io','member123')">
+                            <span style="font-size:1.5rem">👤</span>
+                            <strong>Member</strong>
+                            <span style="font-size:0.7rem;color:var(--text-muted)">Arjun Sharma</span>
+                        </button>
+                        <button class="quick-login-btn" onclick="loginAs('lawyer@immiassist.io','lawyer123')">
+                            <span style="font-size:1.5rem">⚖️</span>
+                            <strong>Lawyer</strong>
+                            <span style="font-size:0.7rem;color:var(--text-muted)">Sarah Chen</span>
+                        </button>
+                        <button class="quick-login-btn" onclick="loginAs('associate@immiassist.io','associate123')">
+                            <span style="font-size:1.5rem">📋</span>
+                            <strong>Associate</strong>
+                            <span style="font-size:0.7rem;color:var(--text-muted)">Marcus Rivera</span>
+                        </button>
                     </div>
+
+                    <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1.25rem">
+                        <div style="flex:1;height:1px;background:var(--border)"></div>
+                        <span style="font-size:0.75rem;color:var(--text-muted)">or sign in manually</span>
+                        <div style="flex:1;height:1px;background:var(--border)"></div>
+                    </div>
+
                     <div class="form-group">
                         <label>Email Address</label>
-                        <input type="email" id="login-email" class="form-control" placeholder="Enter your email" value="member@immiassist.io">
+                        <input type="text" id="login-email" class="form-control" placeholder="Enter email" autocomplete="off">
                     </div>
                     <div class="form-group">
                         <label>Password</label>
-                        <input type="password" id="login-password" class="form-control" placeholder="••••••••" value="member123">
+                        <input type="password" id="login-password" class="form-control" placeholder="Password" autocomplete="new-password">
                     </div>
-                    <button class="btn btn-primary" style="width: 100%; margin-top: 1rem" onclick="login()">
+                    <div id="login-error" style="color:#ff6b6b;font-size:0.82rem;margin-bottom:0.75rem;display:none"></div>
+                    <button class="btn btn-primary" style="width:100%" onclick="login()">
                         Sign In <i data-lucide="arrow-right"></i>
                     </button>
-                    <div style="margin-top: 1.5rem; font-size: 0.78rem; color: var(--text-muted); text-align: center;">
-                        Demo: member@immiassist.io / member123
-                    </div>
                 </div>
 
-                <!-- Sign Up Panel -->
+                <!-- ── SIGN UP PANEL ── -->
                 <div id="signup-panel" style="display:none">
                     <div class="form-group">
                         <label>Full Name</label>
-                        <input type="text" id="reg-name" class="form-control" placeholder="Your full name">
+                        <input type="text" id="reg-name" class="form-control" placeholder="Your full name" autocomplete="off">
                     </div>
                     <div class="form-group">
                         <label>Email Address</label>
-                        <input type="email" id="reg-email" class="form-control" placeholder="your@email.com">
+                        <input type="text" id="reg-email" class="form-control" placeholder="your@email.com" autocomplete="off">
                     </div>
                     <div class="form-group">
                         <label>Phone <span style="color:var(--text-muted);font-size:0.8em">(optional)</span></label>
-                        <input type="tel" id="reg-phone" class="form-control" placeholder="+1-555-0000">
+                        <input type="text" id="reg-phone" class="form-control" placeholder="+1-555-0000" autocomplete="off">
                     </div>
                     <div class="form-group">
                         <label>Password</label>
-                        <input type="password" id="reg-password" class="form-control" placeholder="Min. 6 characters">
+                        <input type="password" id="reg-password" class="form-control" placeholder="Min. 6 characters" autocomplete="new-password">
                     </div>
                     <div id="reg-error" style="color:#ff6b6b;font-size:0.82rem;margin-top:0.5rem;display:none"></div>
-                    <button class="btn btn-primary" style="width: 100%; margin-top: 1rem" onclick="register()">
+                    <button class="btn btn-primary" style="width:100%;margin-top:1rem" onclick="register()">
                         Create Account <i data-lucide="user-plus"></i>
                     </button>
-                    <div style="margin-top: 1rem; font-size: 0.78rem; color: var(--text-muted); text-align: center;">
+                    <div style="margin-top:1rem;font-size:0.78rem;color:var(--text-muted);text-align:center">
                         New accounts are saved as <strong>Member</strong> role by default.
                     </div>
                 </div>
+
             </div>
         </div>
     </template>
@@ -182,9 +202,32 @@
         function renderAuth() {
             document.getElementById('app').innerHTML = document.getElementById('auth-view').innerHTML;
             lucide.createIcons();
-            // Pre-fill member demo credentials
-            const emailEl = document.getElementById('login-email');
-            if (emailEl) emailEl.value = 'member@immiassist.io';
+        }
+
+        async function loginAs(email, password) {
+            // Quick-access: call API directly, no form fields involved
+            const btn = event && event.target ? event.target.closest('.quick-login-btn') : null;
+            if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
+            try {
+                const res = await fetch(`${API}/users/login`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    state.token = data.token;
+                    state.user  = data.user;
+                    localStorage.setItem('token', data.token);
+                    initApp();
+                } else {
+                    alert('Login failed: ' + (data.message || res.status));
+                    if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+                }
+            } catch(e) {
+                alert('Network error. Make sure the server is running.');
+                if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+            }
         }
 
         function switchAuthMode(mode) {
@@ -284,22 +327,37 @@
         }
 
         async function login() {
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
+            const email    = (document.getElementById('login-email').value || '').trim();
+            const password = document.getElementById('login-password').value || '';
+            const errEl    = document.getElementById('login-error');
+            if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+
+            if (!email || !password) {
+                if (errEl) { errEl.textContent = 'Please enter email and password.'; errEl.style.display = 'block'; }
+                return;
+            }
             try {
                 const res = await fetch(`${API}/users/login`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({email, password})
+                    body: JSON.stringify({ email, password })
                 });
                 const data = await res.json();
-                if(res.ok) {
+                if (res.ok) {
                     state.token = data.token;
-                    state.user = data.user;
+                    state.user  = data.user;
                     localStorage.setItem('token', data.token);
                     initApp();
-                } else alert(data.message);
-            } catch(e) { alert('Login failed'); }
+                } else {
+                    const msg = data.message || 'Invalid email or password.';
+                    if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
+                    else alert(msg);
+                }
+            } catch(e) {
+                const msg = 'Network error. Make sure the server is running.';
+                if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
+                else alert(msg);
+            }
         }
 
         function logout() {
@@ -310,27 +368,44 @@
         }
 
         async function initApp() {
+            // Show loading state
+            document.getElementById('app').innerHTML = `
+                <div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:1rem">
+                    <div style="width:48px;height:48px;border:3px solid var(--primary);border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite"></div>
+                    <p style="color:var(--text-muted)">Loading your workspace...</p>
+                </div>
+                <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+            `;
             try {
-                // Fetch profile
                 const res = await fetch(`${API}/users/profile`, {
                     headers: {'Authorization': `Bearer ${state.token}`}
                 });
-                if(!res.ok) throw new Error('Invalid token');
+                if (!res.ok) {
+                    localStorage.removeItem('token');
+                    state.token = null;
+                    renderAuth();
+                    return;
+                }
                 state.user = await res.json();
-                
+
                 document.getElementById('app').innerHTML = document.getElementById('app-view').innerHTML;
                 lucide.createIcons();
-                
-                // Set UI
-                document.getElementById('user-name').innerText = state.user.name;
-                document.getElementById('user-initials').innerText = state.user.name.charAt(0);
-                document.getElementById('user-role-label').innerText = state.user.role.replace('_', ' ');
+
+                document.getElementById('user-name').innerText = state.user.name || state.user.email;
+                document.getElementById('user-initials').innerText = (state.user.name || state.user.email).charAt(0).toUpperCase();
+                document.getElementById('user-role-label').innerText = state.user.role.replace(/_/g, ' ');
 
                 setupSidebar();
                 await loadCases();
                 initWebSocket();
             } catch (e) {
-                logout();
+                console.error('initApp error:', e);
+                document.getElementById('app').innerHTML = `
+                    <div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:1rem">
+                        <p style="color:#ff6b6b">⚠️ Failed to load: ${e.message}</p>
+                        <button class="btn btn-primary" onclick="logout()">Back to Login</button>
+                    </div>
+                `;
             }
         }
 
@@ -360,60 +435,83 @@
         }
 
         async function loadCases() {
-            const res = await fetch(`${API}/cases`, {
-                headers: {'Authorization': `Bearer ${state.token}`}
-            });
-            const cases = await res.json();
-            if(cases.length > 0) {
-                selectCase(cases[0]);
-            } else if (state.user.role === 'MEMBER') {
-                // Auto create demo case if none
-                const createRes = await fetch(`${API}/cases`, {
-                    method: 'POST',
-                    headers: {'Authorization': `Bearer ${state.token}`, 'Content-Type': 'application/json'},
-                    body: JSON.stringify({ caseType: 'VISA_PROCESSING' })
+            try {
+                const res = await fetch(`${API}/cases`, {
+                    headers: {'Authorization': `Bearer ${state.token}`}
                 });
-                const newCase = await createRes.json();
-                selectCase(newCase);
+                if (!res.ok) { console.warn('loadCases: HTTP', res.status); return; }
+                const cases = await res.json();
+                const list = Array.isArray(cases) ? cases : (cases.data || []);
+                if (list.length > 0) {
+                    await selectCase(list[0]);
+                } else if (state.user.role === 'MEMBER') {
+                    const createRes = await fetch(`${API}/cases`, {
+                        method: 'POST',
+                        headers: {'Authorization': `Bearer ${state.token}`, 'Content-Type': 'application/json'},
+                        body: JSON.stringify({ caseType: 'VISA_PROCESSING' })
+                    });
+                    if (createRes.ok) {
+                        const newCase = await createRes.json();
+                        await selectCase(newCase);
+                    }
+                }
+            } catch(e) {
+                console.error('loadCases error:', e);
             }
         }
 
         async function selectCase(caseObj) {
-            state.caseId = caseObj.id;
-            
-            // Header
-            document.getElementById('header-case-number').innerText = caseObj.caseNumber;
-            document.getElementById('header-badges').innerHTML = `
-                <span class="badge primary">${caseObj.caseType.replace('_', ' ')}</span>
-                <span class="badge warning">${caseObj.status.replace(/_/g, ' ')}</span>
-            `;
+            try {
+                state.caseId = caseObj.id;
 
-            // Init Chat
-            const sessRes = await fetch(`${API}/sessions`, {
-                method: 'POST',
-                headers: {'Authorization': `Bearer ${state.token}`, 'Content-Type': 'application/json'},
-                body: JSON.stringify({ caseId: caseObj.id, sessionType: 'INTAKE' })
-            });
-            const session = await sessRes.json();
-            state.sessionId = session.id;
-            
-            const chatContainer = document.getElementById('chat-messages');
-            chatContainer.innerHTML = '';
-            
-            if (session.messages) {
-                session.messages.forEach(m => {
-                    if (m.role !== 'system') appendMessage(m.role, m.content, m.options);
+                // Header
+                const headerCN = document.getElementById('header-case-number');
+                const headerBadges = document.getElementById('header-badges');
+                if (headerCN) headerCN.innerText = caseObj.caseNumber || 'N/A';
+                if (headerBadges) headerBadges.innerHTML = `
+                    <span class="badge primary">${(caseObj.caseType||'').replace(/_/g, ' ')}</span>
+                    <span class="badge warning">${(caseObj.status||'').replace(/_/g, ' ')}</span>
+                `;
+
+                // Init Chat Session
+                const sessRes = await fetch(`${API}/sessions`, {
+                    method: 'POST',
+                    headers: {'Authorization': `Bearer ${state.token}`, 'Content-Type': 'application/json'},
+                    body: JSON.stringify({ caseId: caseObj.id, sessionType: 'INTAKE' })
                 });
-            }
+                if (sessRes.ok) {
+                    const session = await sessRes.json();
+                    state.sessionId = session.id;
+                    const chatContainer = document.getElementById('chat-messages');
+                    if (chatContainer) {
+                        chatContainer.innerHTML = '';
+                        if (session.messages && Array.isArray(session.messages)) {
+                            session.messages.forEach(m => {
+                                if (m.role !== 'system') appendMessage(m.role, m.content, m.options);
+                            });
+                        }
+                    }
+                } else {
+                    console.warn('Session creation failed:', sessRes.status);
+                }
 
-            // Load Timeline
-            const tlRes = await fetch(`${API}/timeline/${caseObj.id}`, {
-                headers: {'Authorization': `Bearer ${state.token}`}
-            });
-            const tlData = await tlRes.json();
-            renderTimeline(tlData.events);
-            
-            lucide.createIcons();
+                // Load Timeline
+                try {
+                    const tlRes = await fetch(`${API}/timeline/${caseObj.id}`, {
+                        headers: {'Authorization': `Bearer ${state.token}`}
+                    });
+                    if (tlRes.ok) {
+                        const tlData = await tlRes.json();
+                        renderTimeline(tlData.events || []);
+                    }
+                } catch(tlErr) {
+                    console.warn('Timeline load failed:', tlErr);
+                }
+
+                lucide.createIcons();
+            } catch(e) {
+                console.error('selectCase error:', e);
+            }
         }
 
         function renderTimeline(events) {

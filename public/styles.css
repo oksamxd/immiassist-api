@@ -138,6 +138,35 @@ body {
     box-shadow: 0 2px 12px rgba(79, 70, 229, 0.4);
 }
 
+/* One-click quick access login cards */
+.quick-login-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.85rem 0.5rem;
+    background: rgba(79, 70, 229, 0.08);
+    border: 1px solid rgba(79, 70, 229, 0.25);
+    border-radius: 12px;
+    color: white;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s ease;
+    width: 100%;
+}
+
+.quick-login-btn:hover {
+    background: rgba(79, 70, 229, 0.22);
+    border-color: rgba(79, 70, 229, 0.5);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(79, 70, 229, 0.2);
+}
+
+.quick-login-btn:disabled {
+    cursor: not-allowed;
+    transform: none;
+}
+
 .form-group {
     margin-bottom: 1.5rem;
 }
