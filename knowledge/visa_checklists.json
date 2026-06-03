@@ -1,0 +1,29 @@
+{
+  "F1": {
+    "documents": [
+      "Passport",
+      "Visa",
+      "I-20",
+      "SEVIS Receipt",
+      "University Admission Letter"
+    ]
+  },
+  "H1B": {
+    "documents": [
+      "Passport",
+      "Visa",
+      "I-797",
+      "Employment Verification Letter",
+      "Recent Payslips"
+    ]
+  },
+  "B1B2": {
+    "documents": [
+      "Passport",
+      "Visa",
+      "Hotel Booking",
+      "Return Ticket",
+      "Financial Documents"
+    ]
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "travel_prep": [
+    "i am traveling",
+    "i have a flight",
+    "prepare me for immigration",
+    "what documents do i need",
+    "i am travelling to usa"
+  ],
+  "ten_min_mode": [
+    "i am 10 minutes away",
+    "my flight is landing",
+    "i am near immigration",
+    "help me prepare"
+  ],
+  "airport_live": [
+    "i am being questioned",
+    "immigration stopped me",
+    "secondary inspection",
+    "officer is asking questions"
+  ],
+  "detained": [
+    "i am detained",
+    "they took my passport",
+    "i am in secondary room",
+    "i am being held"
+  ],
+  "notice_depart": [
+    "i received a notice",
+    "notice to leave",
+    "deportation notice",
+    "removal notice"
+  ],
+  "lawyer_help": [
+    "i need a lawyer",
+    "connect me to a lawyer",
+    "legal help"
+  ]
+}

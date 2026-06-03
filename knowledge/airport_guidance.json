@@ -1,0 +1,20 @@
+{
+  "questioned": [
+    "Stay calm.",
+    "Answer truthfully.",
+    "Do not provide unnecessary information.",
+    "Keep your documents ready."
+  ],
+  "secondary_inspection": [
+    "Remain cooperative.",
+    "Listen carefully.",
+    "Do not guess answers.",
+    "Request clarification if needed."
+  ],
+  "detained": [
+    "Stay calm.",
+    "Do not sign documents without understanding them.",
+    "Ask to speak with legal counsel if available.",
+    "Keep family or emergency contacts informed."
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "LOW": {
+    "support": false,
+    "lawyer": false
+  },
+  "MEDIUM": {
+    "support": true,
+    "lawyer": false
+  },
+  "HIGH": {
+    "support": true,
+    "lawyer": true
+  },
+  "CRITICAL": {
+    "support": true,
+    "lawyer": true,
+    "priority": "URGENT"
+  }
+}

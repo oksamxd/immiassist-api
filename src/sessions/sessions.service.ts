@@ -1,8 +1,26 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { AiService } from '../ai/ai.service';
+import { AiService, OnboardingContext } from '../ai/ai.service';
 import { AuditService } from '../audit/audit.service';
 import { CreateSessionDto } from './dto/session.dto';
+
+const REQUIRED_PROFILE_FIELDS = [
+  'passportNumber',
+  'nationality',
+  'visaType',
+  'visaExpiry',
+  'employerOrUniversity',
+];
+
+const REQUIRED_DOCUMENTS: Record<string, string[]> = {
+  VISA_PROCESSING:    ['PASSPORT', 'VISA', 'I797'],
+  WORK_PERMIT:        ['PASSPORT', 'VISA', 'EMPLOYMENT_LETTER'],
+  STUDY_PERMIT:       ['PASSPORT', 'VISA', 'I20'],
+  FAMILY_SPONSORSHIP: ['PASSPORT', 'VISA'],
+  DEPORTATION:        ['PASSPORT', 'VISA', 'I797'],
+  CITIZENSHIP:        ['PASSPORT'],
+  DEFAULT:            ['PASSPORT', 'VISA'],
+};
 
 @Injectable()
 export class SessionsService {
@@ -12,7 +30,57 @@ export class SessionsService {
     private readonly audit: AuditService,
   ) {}
 
+  private getRequiredDocs(caseType?: string): string[] {
+    return REQUIRED_DOCUMENTS[caseType || ''] || REQUIRED_DOCUMENTS.DEFAULT;
+  }
+
+  private async buildOnboardingContext(caseId: string): Promise<OnboardingContext> {
+    const caseData = await this.prisma.case.findUnique({
+      where: { id: caseId },
+      include: {
+        detail: true,
+        member: { include: { profile: true } },
+        documents: { select: { documentType: true } },
+        assignedLawyer: { select: { name: true } },
+      },
+    });
+
+    const profile: any = caseData?.member?.profile || {};
+    const uploadedDocuments = (caseData?.documents || []).map((d: any) => d.documentType);
+    const requiredDocuments = this.getRequiredDocs(caseData?.caseType);
+
+    const partialCtx = { profile, uploadedDocuments };
+    const phase = this.ai.detectPhase(partialCtx);
+
+    return {
+      phase,
+      profile: {
+        passportNumber:        profile.passportNumber,
+        nationality:           profile.nationality,
+        visaType:              profile.visaType,
+        visaExpiry:            profile.visaExpiry?.toISOString?.() || profile.visaExpiry,
+        employerOrUniversity:  profile.employerOrUniversity,
+        preferredLanguage:     profile.preferredLanguage,
+        emergencyContact:      profile.emergencyContact,
+        portOfEntry:           profile.portOfEntry,
+      },
+      uploadedDocuments,
+      requiredDocuments,
+      caseType:    caseData?.caseType,
+      caseStatus:  caseData?.status,
+      caseNumber:  caseData?.caseNumber,
+      lawyer:      caseData?.assignedLawyer ? { name: caseData.assignedLawyer.name } : undefined,
+    };
+  }
+
   async create(userId: string, dto: CreateSessionDto) {
+    // Check if there's already an active session for this case
+    const existing = await this.prisma.guidanceSession.findFirst({
+      where: { caseId: dto.caseId, userId, status: 'ACTIVE' },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (existing) return existing;
+
     const session = await this.prisma.guidanceSession.create({
       data: {
         caseId: dto.caseId,
@@ -23,21 +91,13 @@ export class SessionsService {
       },
     });
 
-    // Generate initial AI greeting
-    const caseData = await this.prisma.case.findUnique({
-      where: { id: dto.caseId },
-      include: { detail: true, documents: { select: { documentType: true } } },
-    });
-
-    const orchestrationResult = await this.ai.orchestrate(
-      { caseType: caseData?.caseType, documents: caseData?.documents?.map((d: any) => d.documentType) },
-      'Hello, I need immigration assistance.',
-    );
-    const greeting = JSON.stringify(orchestrationResult);
+    const ctx = await this.buildOnboardingContext(dto.caseId);
+    const greeting = await this.ai.orchestrate(ctx, 'Hello, I just registered and need immigration assistance.');
+    const greetingJson = JSON.stringify(greeting);
 
     const messages = [
       { role: 'system', content: 'Session started', timestamp: new Date().toISOString() },
-      { role: 'assistant', content: greeting, timestamp: new Date().toISOString() },
+      { role: 'assistant', content: greetingJson, timestamp: new Date().toISOString() },
     ];
 
     await this.prisma.guidanceSession.update({
@@ -65,12 +125,11 @@ export class SessionsService {
     const session = await this.prisma.guidanceSession.findUnique({ where: { id: sessionId } });
     if (!session) throw new NotFoundException('Session not found');
 
-    const caseData = await this.prisma.case.findUnique({
-      where: { id: session.caseId },
-      include: { detail: true, member: { include: { profile: true } } },
-    });
-
     const existingMessages = (session.messages as any[]) || [];
+
+    // Build full onboarding context
+    const ctx = await this.buildOnboardingContext(session.caseId);
+    ctx.messageHistory = existingMessages;
 
     // Add user message
     existingMessages.push({
@@ -79,44 +138,79 @@ export class SessionsService {
       timestamp: new Date().toISOString(),
     });
 
-    // Generate AI response
-    const context = {
-      caseType: caseData?.caseType,
-      status: caseData?.status,
-      visaType: caseData?.member?.profile?.visaType,
-      nationality: caseData?.member?.profile?.nationality,
-      detail: caseData?.detail,
-      messageHistory: existingMessages.slice(-6),
-    };
-
-    const orchestrationResult = await this.ai.orchestrate(context, message);
-    const aiResponse = JSON.stringify(orchestrationResult);
+    // Call Jana AI
+    const orchestrationResult = await this.ai.orchestrate(ctx, message);
+    const aiResponseJson = JSON.stringify(orchestrationResult);
 
     existingMessages.push({
       role: 'assistant',
-      content: aiResponse,
+      content: aiResponseJson,
       timestamp: new Date().toISOString(),
     });
+
+    // Handle SAVE_PROFILE_FIELD action — auto-save profile data
+    if (
+      orchestrationResult.nextAction === 'SAVE_PROFILE_FIELD' &&
+      orchestrationResult.fieldToSave?.field &&
+      orchestrationResult.fieldToSave?.value
+    ) {
+      const { field, value } = orchestrationResult.fieldToSave;
+      const allowedFields = [
+        'passportNumber', 'nationality', 'visaType', 'visaExpiry',
+        'employerOrUniversity', 'portOfEntry', 'emergencyContact', 'preferredLanguage',
+      ];
+      if (allowedFields.includes(field)) {
+        const updateData: any = {};
+        if (field === 'visaExpiry') {
+          const parsed = new Date(value);
+          updateData[field] = isNaN(parsed.getTime()) ? undefined : parsed;
+        } else {
+          updateData[field] = value;
+        }
+        if (Object.keys(updateData).length > 0) {
+          await this.prisma.memberProfile.upsert({
+            where: { userId },
+            update: updateData,
+            create: { ...updateData, userId },
+          });
+        }
+      }
+    }
+
+    // Handle ADVANCE_PHASE — update case status if needed
+    if (orchestrationResult.nextAction === 'ADVANCE_PHASE' && orchestrationResult.caseStatus) {
+      try {
+        await this.prisma.case.update({
+          where: { id: session.caseId },
+          data: { status: orchestrationResult.caseStatus as any },
+        });
+      } catch { /* ignore if invalid status */ }
+    }
 
     await this.prisma.guidanceSession.update({
       where: { id: sessionId },
       data: { messages: existingMessages },
     });
 
-    // Create event
-    await this.prisma.caseEvent.create({
-      data: {
-        caseId: session.caseId,
-        eventType: 'AI_RESPONSE_GENERATED',
-        title: 'Jana AI Response',
-        actorType: 'SYSTEM',
-        metadata: { sessionId, messageCount: existingMessages.length },
-      },
-    });
+    // Create timeline event if Jana provided one
+    if (orchestrationResult.timelineEvent) {
+      await this.prisma.caseEvent.create({
+        data: {
+          caseId: session.caseId,
+          eventType: (orchestrationResult.timelineEvent.type as any) || 'AI_RESPONSE_GENERATED',
+          title: orchestrationResult.timelineEvent.title || 'Jana AI Response',
+          description: orchestrationResult.timelineEvent.description,
+          actorType: 'SYSTEM',
+          metadata: { sessionId, phase: orchestrationResult.phase },
+        },
+      });
+    }
 
     return {
       userMessage: { role: 'user', content: message },
-      aiResponse: { role: 'assistant', content: aiResponse },
+      aiResponse: { role: 'assistant', content: aiResponseJson },
+      phase: orchestrationResult.phase,
+      nextAction: orchestrationResult.nextAction,
       messageCount: existingMessages.length,
     };
   }

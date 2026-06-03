@@ -1,0 +1,22 @@
+{
+  "travel_start": [
+    "I am traveling",
+    "Upload Documents",
+    "View Checklist"
+  ],
+  "airport": [
+    "I am cleared",
+    "I am being questioned",
+    "I am detained"
+  ],
+  "notice": [
+    "Upload Notice",
+    "Talk to Legal Associate",
+    "Find Lawyer"
+  ],
+  "documents": [
+    "Upload Passport",
+    "Upload Visa",
+    "Upload Additional Documents"
+  ]
+}

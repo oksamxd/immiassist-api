@@ -1,0 +1,11 @@
+{
+  "CASE_CREATED": "Your case has been created.",
+  "DOCUMENTS_PENDING": "Additional documents are required.",
+  "UNDER_REVIEW": "Your case is currently under review.",
+  "LAWYER_ASSIGNED": "A lawyer has been assigned.",
+  "CONSULTATION_SCHEDULED": "Your consultation has been scheduled.",
+  "COURT_DATE_ASSIGNED": "A court date has been added to your timeline.",
+  "FOLLOWUP_PENDING": "A follow-up action is pending.",
+  "RESOLVED": "Your case has been resolved.",
+  "CLOSED": "This case has been closed."
+}

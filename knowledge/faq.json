@@ -1,0 +1,24 @@
+{
+  "faqs": [
+    {
+      "question": "What documents should I carry while traveling?",
+      "answer": "Carry your passport, visa, immigration forms, employment or university documents, return tickets, and supporting evidence."
+    },
+    {
+      "question": "What should I do if immigration officers ask questions?",
+      "answer": "Stay calm, answer truthfully, keep responses short, and provide documents when requested."
+    },
+    {
+      "question": "Can Jana AI provide legal advice?",
+      "answer": "No. Jana AI provides guidance and support. Legal advice should come from a licensed lawyer."
+    },
+    {
+      "question": "What if I receive a notice to depart?",
+      "answer": "Do not ignore the notice. Upload it immediately and connect with a legal associate or lawyer."
+    },
+    {
+      "question": "What should I do if I am detained?",
+      "answer": "Stay calm, do not sign documents without understanding them, and request legal assistance."
+    }
+  ]
+}

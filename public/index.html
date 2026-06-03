@@ -366,11 +366,10 @@
         }
 
         async function initApp() {
-            // Show loading state
             document.getElementById('app').innerHTML = `
                 <div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:1rem">
-                    <div style="width:48px;height:48px;border:3px solid var(--primary);border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite"></div>
-                    <p style="color:var(--text-muted)">Loading your workspace...</p>
+                    <div style="width:44px;height:44px;border:3px solid var(--primary);border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite"></div>
+                    <p style="color:var(--text-muted);font-size:0.9rem">Loading your workspace&hellip;</p>
                 </div>
                 <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
             `;
@@ -386,25 +385,274 @@
                 }
                 state.user = await res.json();
 
-                document.getElementById('app').innerHTML = document.getElementById('app-view').innerHTML;
-                safeCreateIcons();
+                // Members must complete onboarding before accessing the dashboard
+                if (state.user.role === 'MEMBER') {
+                    const onbRes = await fetch(`${API}/users/onboarding-status`, {
+                        headers: {'Authorization': `Bearer ${state.token}`}
+                    });
+                    if (onbRes.ok) {
+                        const onb = await onbRes.json();
+                        const profileOk = onb.profileComplete;
+                        const docsOk = onb.documents && Object.values(onb.documents).some(v => v);
+                        // Check if profile fields are filled
+                        const profileFields = onb.profile || {};
+                        const profileFilled = profileFields.passportNumber && profileFields.nationality && profileFields.visaType;
+                        if (!profileFilled) {
+                            await renderOnboarding('PROFILE');
+                            return;
+                        }
+                        if (!docsOk) {
+                            await renderOnboarding('DOCUMENTS');
+                            return;
+                        }
+                    }
+                }
 
-                document.getElementById('user-name').innerText = state.user.name || state.user.email;
-                document.getElementById('user-initials').innerText = (state.user.name || state.user.email).charAt(0).toUpperCase();
-                document.getElementById('user-role-label').innerText = state.user.role.replace(/_/g, ' ');
-
-                setupSidebar();
-                await loadCases();
-                initWebSocket();
+                renderDashboard();
             } catch (e) {
                 console.error('initApp error:', e);
                 document.getElementById('app').innerHTML = `
-                    <div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:1rem">
-                        <p style="color:#ff6b6b">⚠️ Failed to load: ${e.message}</p>
+                    <div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:1.5rem">
+                        <p style="color:#f87171;font-size:0.95rem">Failed to load workspace. Please try again.</p>
                         <button class="btn btn-primary" onclick="logout()">Back to Login</button>
                     </div>
                 `;
             }
+        }
+
+        function renderDashboard() {
+            document.getElementById('app').innerHTML = document.getElementById('app-view').innerHTML;
+            safeCreateIcons();
+            document.getElementById('user-name').innerText = state.user.name || state.user.email;
+            document.getElementById('user-initials').innerText = (state.user.name || state.user.email).charAt(0).toUpperCase();
+            document.getElementById('user-role-label').innerText = state.user.role.replace(/_/g, ' ');
+            setupSidebar();
+            loadCases();
+            initWebSocket();
+        }
+
+        async function renderOnboarding(startPhase) {
+            const phase = startPhase || 'PROFILE';
+            const steps = [
+                { key: 'PROFILE',   label: 'Profile',   icon: 'user' },
+                { key: 'DOCUMENTS', label: 'Documents', icon: 'file-text' },
+                { key: 'REVIEW',    label: 'Review',    icon: 'check-circle' },
+            ];
+            const stepIdx = steps.findIndex(s => s.key === phase);
+
+            document.getElementById('app').innerHTML = `
+                <div class="onboarding-layout">
+                    <!-- Left: stepper + info -->
+                    <aside class="onboarding-sidebar glass-panel">
+                        <div class="brand" style="margin-bottom:2.5rem">
+                            <i data-lucide="scale"></i> ImmiAssist
+                        </div>
+                        <div class="onb-steps">
+                            ${steps.map((s, i) => `
+                                <div class="onb-step ${i < stepIdx ? 'done' : i === stepIdx ? 'active' : ''}">
+                                    <div class="onb-step-dot">
+                                        ${i < stepIdx ? '<i data-lucide="check" style="width:14px"></i>' : (i + 1)}
+                                    </div>
+                                    <div>
+                                        <div class="onb-step-label">${s.label}</div>
+                                        <div class="onb-step-desc">${
+                                            i === 0 ? 'Nationality, visa, contact details' :
+                                            i === 1 ? 'Passport, visa documents' :
+                                            'Legal team review'
+                                        }</div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="onb-help-box">
+                            <p style="font-size:0.8rem;color:var(--text-muted);line-height:1.6">
+                                Jana AI will guide you through this process step by step. All information is encrypted and only accessible to your assigned legal team.
+                            </p>
+                        </div>
+                        <div class="user-profile-widget" style="margin-top:auto">
+                            <div style="width:36px;height:36px;background:var(--primary);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0">
+                                ${(state.user.name || state.user.email).charAt(0).toUpperCase()}
+                            </div>
+                            <div style="flex:1;min-width:0">
+                                <div style="font-size:0.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${state.user.name || state.user.email}</div>
+                                <div style="font-size:0.72rem;color:var(--text-muted)">${state.user.role.replace(/_/g,' ')}</div>
+                            </div>
+                            <button onclick="logout()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;padding:0.25rem" title="Sign out"><i data-lucide="log-out" style="width:16px"></i></button>
+                        </div>
+                    </aside>
+
+                    <!-- Right: Jana AI chat -->
+                    <main class="onboarding-main">
+                        <div class="onb-header">
+                            <div>
+                                <h2 style="font-size:1.2rem;font-weight:700">Case Intake — ${steps[stepIdx]?.label || 'Setup'}</h2>
+                                <p style="font-size:0.82rem;color:var(--text-muted);margin-top:0.2rem">Jana AI is guiding you through your case setup</p>
+                            </div>
+                            <div class="badge primary">Step ${stepIdx + 1} of ${steps.length}</div>
+                        </div>
+
+                        <div class="chat-container" id="onb-chat"></div>
+
+                        ${ phase === 'DOCUMENTS' ? `
+                        <div style="padding:0.75rem 2rem;border-top:1px solid var(--border);background:rgba(15,23,42,0.6)">
+                            <label style="display:inline-flex;align-items:center;gap:0.6rem;padding:0.6rem 1.25rem;background:rgba(79,70,229,0.15);border:1px solid rgba(79,70,229,0.35);border-radius:8px;cursor:pointer;font-size:0.88rem;color:#a5b4fc;font-weight:500;transition:all 0.2s">
+                                <i data-lucide="upload" style="width:16px"></i>
+                                Upload Document
+                                <input type="file" id="onb-doc-upload" style="display:none" onchange="onboardingUpload(event)" accept=".pdf,.jpg,.jpeg,.png">
+                            </label>
+                            <span style="font-size:0.75rem;color:var(--text-muted);margin-left:1rem">PDF, JPG, PNG accepted</span>
+                        </div>
+                        ` : '' }
+
+                        <div class="input-area">
+                            <div class="chat-input-wrapper">
+                                <input type="text" id="onb-input" class="" placeholder="Type your response…" onkeypress="if(event.key==='Enter') onbSend()" style="flex:1;background:transparent;border:none;color:white;padding:0 1rem;font-size:0.95rem;font-family:inherit">
+                                <button class="btn-icon primary" onclick="onbSend()">
+                                    <i data-lucide="send" style="width:18px"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            `;
+            safeCreateIcons();
+
+            // Start session for onboarding
+            await ensureOnboardingSession();
+        }
+
+        async function ensureOnboardingSession() {
+            try {
+                // Get or create case
+                let caseObj;
+                const casesRes = await fetch(`${API}/cases`, { headers: {'Authorization': `Bearer ${state.token}`} });
+                if (casesRes.ok) {
+                    const list = await casesRes.json();
+                    caseObj = Array.isArray(list) ? list[0] : null;
+                }
+                if (!caseObj) {
+                    const cr = await fetch(`${API}/cases`, {
+                        method: 'POST',
+                        headers: {'Authorization': `Bearer ${state.token}`, 'Content-Type': 'application/json'},
+                        body: JSON.stringify({ caseType: 'VISA_PROCESSING' })
+                    });
+                    if (cr.ok) caseObj = await cr.json();
+                }
+                if (!caseObj) return;
+
+                state.caseId = caseObj.id;
+
+                // Start session
+                const sessRes = await fetch(`${API}/sessions`, {
+                    method: 'POST',
+                    headers: {'Authorization': `Bearer ${state.token}`, 'Content-Type': 'application/json'},
+                    body: JSON.stringify({ caseId: caseObj.id, sessionType: 'INTAKE' })
+                });
+                if (!sessRes.ok) return;
+                const session = await sessRes.json();
+                state.sessionId = session.id;
+
+                // Render existing messages
+                const msgs = Array.isArray(session.messages) ? session.messages : [];
+                msgs.forEach(m => {
+                    if (m.role !== 'system') onbAppendMessage(m.role, m.content);
+                });
+            } catch(e) { console.error('ensureOnboardingSession', e); }
+        }
+
+        async function onbSend() {
+            const input = document.getElementById('onb-input');
+            if (!input) return;
+            const text = (input.value || '').trim();
+            if (!text || !state.sessionId) return;
+            input.value = '';
+            onbAppendMessage('user', JSON.stringify({ message: text }));
+
+            try {
+                const res = await fetch(`${API}/sessions/${state.sessionId}/message`, {
+                    method: 'POST',
+                    headers: {'Authorization': `Bearer ${state.token}`, 'Content-Type': 'application/json'},
+                    body: JSON.stringify({ message: text })
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                onbAppendMessage('assistant', data.aiResponse.content);
+
+                // If phase advanced to ACTIVE — go to full dashboard
+                if (data.phase === 'ACTIVE') {
+                    setTimeout(() => initApp(), 2000);
+                } else if (data.phase && data.phase !== getCurrentOnbPhase()) {
+                    setTimeout(() => renderOnboarding(data.phase), 1500);
+                }
+            } catch(e) { console.error('onbSend', e); }
+        }
+
+        function getCurrentOnbPhase() {
+            const header = document.querySelector('.onb-header h2');
+            if (!header) return null;
+            const t = header.innerText;
+            if (t.includes('Profile')) return 'PROFILE';
+            if (t.includes('Documents')) return 'DOCUMENTS';
+            if (t.includes('Review')) return 'REVIEW';
+            return 'ACTIVE';
+        }
+
+        async function onboardingUpload(event) {
+            const file = event.target.files[0];
+            if (!file || !state.caseId) return;
+            onbAppendMessage('user', JSON.stringify({ message: `Uploading: ${file.name}` }));
+            const formData = new FormData();
+            formData.append('file', file);
+            try {
+                const res = await fetch(`${API}/documents/${state.caseId}?type=PASSPORT`, {
+                    method: 'POST',
+                    headers: {'Authorization': `Bearer ${state.token}`},
+                    body: formData
+                });
+                if (res.ok) {
+                    await onbSendSilent(`I have uploaded ${file.name}`);
+                } else {
+                    onbAppendMessage('assistant', JSON.stringify({ message: 'Upload failed. Please try again.' }));
+                }
+            } catch { onbAppendMessage('assistant', JSON.stringify({ message: 'Upload failed. Please try again.' })); }
+        }
+
+        async function onbSendSilent(text) {
+            if (!state.sessionId) return;
+            try {
+                const res = await fetch(`${API}/sessions/${state.sessionId}/message`, {
+                    method: 'POST',
+                    headers: {'Authorization': `Bearer ${state.token}`, 'Content-Type': 'application/json'},
+                    body: JSON.stringify({ message: text })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    onbAppendMessage('assistant', data.aiResponse.content);
+                    if (data.phase === 'ACTIVE') setTimeout(() => initApp(), 2000);
+                    else if (data.phase && data.phase !== getCurrentOnbPhase()) setTimeout(() => renderOnboarding(data.phase), 1500);
+                }
+            } catch(e) { console.error('onbSendSilent', e); }
+        }
+
+        function onbAppendMessage(role, rawContent) {
+            const container = document.getElementById('onb-chat');
+            if (!container) return;
+            let text = rawContent;
+            let options = [];
+            try {
+                const parsed = JSON.parse(rawContent);
+                text = parsed.message || rawContent;
+                options = parsed.options || [];
+            } catch { /* raw string */ }
+
+            text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+
+            const optsHtml = options.length > 0
+                ? `<div class="message-options">${options.map(o => `<button class="msg-opt-btn" onclick="document.getElementById('onb-input').value='${o.replace(/'/g,"'").replace(/[^\x20-\x7E]/g,'')}';onbSend()">${o}</button>`).join('')}</div>`
+                : '';
+
+            container.innerHTML += `<div class="message ${role === 'assistant' ? 'ai' : 'user'}">${text}${optsHtml}</div>`;
+            container.scrollTop = container.scrollHeight;
         }
 
         function setupSidebar() {

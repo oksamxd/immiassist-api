@@ -1,0 +1,23 @@
+{
+  "welcome": {
+    "message": "Hello, I am Jana AI. I can help you prepare for travel, handle immigration situations, and connect you with legal support. How can I help today?"
+  },
+  "travel_intake": {
+    "message": "Let's prepare your travel case. What visa type are you traveling on?"
+  },
+  "airport_live": {
+    "message": "I understand this can be stressful. Stay calm. Tell me what is happening right now."
+  },
+  "detained": {
+    "message": "Stay calm. I am creating a high-priority case and notifying support."
+  },
+  "notice_received": {
+    "message": "Please upload the notice document. I will help classify the situation and connect you with support if needed."
+  },
+  "lawyer_assigned": {
+    "message": "A lawyer has been assigned to your case. You will receive consultation details shortly."
+  },
+  "case_resolved": {
+    "message": "Your case has been marked as resolved. You can still review the timeline and documents anytime."
+  }
+}
