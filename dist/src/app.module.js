@@ -12,7 +12,6 @@ const config_1 = require("@nestjs/config");
 const prisma_service_1 = require("./prisma.service");
 const auth_module_1 = require("./auth/auth.module");
 const cases_module_1 = require("./cases/cases.module");
-const travel_module_1 = require("./travel/travel.module");
 const documents_module_1 = require("./documents/documents.module");
 const sessions_module_1 = require("./sessions/sessions.module");
 const ai_module_1 = require("./ai/ai.module");
@@ -21,6 +20,14 @@ const assignment_module_1 = require("./assignment/assignment.module");
 const notifications_module_1 = require("./notifications/notifications.module");
 const users_module_1 = require("./users/users.module");
 const audit_module_1 = require("./audit/audit.module");
+const member_profile_module_1 = require("./member-profile/member-profile.module");
+const lawyers_module_1 = require("./lawyers/lawyers.module");
+const legal_associates_module_1 = require("./legal-associates/legal-associates.module");
+const appointments_module_1 = require("./appointments/appointments.module");
+const court_dates_module_1 = require("./court-dates/court-dates.module");
+const realtime_module_1 = require("./realtime/realtime.module");
+const dashboard_module_1 = require("./dashboard/dashboard.module");
+const timeline_module_1 = require("./timeline/timeline.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -30,7 +37,6 @@ exports.AppModule = AppModule = __decorate([
             config_1.ConfigModule.forRoot({ isGlobal: true }),
             auth_module_1.AuthModule,
             cases_module_1.CasesModule,
-            travel_module_1.TravelModule,
             documents_module_1.DocumentsModule,
             sessions_module_1.SessionsModule,
             ai_module_1.AiModule,
@@ -39,6 +45,14 @@ exports.AppModule = AppModule = __decorate([
             notifications_module_1.NotificationsModule,
             users_module_1.UsersModule,
             audit_module_1.AuditModule,
+            member_profile_module_1.MemberProfileModule,
+            lawyers_module_1.LawyersModule,
+            legal_associates_module_1.LegalAssociatesModule,
+            appointments_module_1.AppointmentsModule,
+            court_dates_module_1.CourtDatesModule,
+            realtime_module_1.RealtimeModule,
+            dashboard_module_1.DashboardModule,
+            timeline_module_1.TimelineModule,
         ],
         providers: [prisma_service_1.PrismaService],
     })

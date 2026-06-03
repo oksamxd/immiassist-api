@@ -9,15 +9,14 @@ export declare class AssignmentService {
     assignSupport(caseId: string, actorId?: string): Promise<{
         caseId: string;
         agent: {
-            id: any;
-            name: any;
+            id: string;
         };
     }>;
     alertLawyer(caseId: string, actorId?: string): Promise<{
         caseId: string;
         lawyer: {
-            id: any;
-            name: any;
+            id: string;
+            name: string;
         };
     }>;
     lawyerAccept(caseId: string, actorId: string): Promise<{

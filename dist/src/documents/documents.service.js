@@ -66,7 +66,7 @@ let DocumentsService = class DocumentsService {
         const doc = await this.prisma.document.create({
             data: {
                 caseId,
-                type: docType,
+                documentType: docType,
                 fileUrl: `/uploads/${fileName}`,
                 fileName: file.originalname,
                 mimeType: file.mimetype,
@@ -77,6 +77,7 @@ let DocumentsService = class DocumentsService {
             data: {
                 caseId,
                 eventType: 'DOCUMENT_UPLOADED',
+                title: 'Document Uploaded',
                 actorType: 'USER',
                 actorId: userId,
                 metadata: { docType, fileName: file.originalname },
@@ -93,7 +94,7 @@ let DocumentsService = class DocumentsService {
     }
     async uploadOnboarding(userId, docType, file) {
         let existingCase = await this.prisma.case.findFirst({
-            where: { userId, status: 'OPEN' },
+            where: { userId, status: 'NEW' },
             orderBy: { createdAt: 'desc' },
         });
         if (!existingCase) {
@@ -102,8 +103,8 @@ let DocumentsService = class DocumentsService {
                 data: {
                     caseNumber,
                     userId,
-                    caseType: 'TRAVEL_PREP',
-                    status: 'OPEN',
+                    caseType: 'VISA_PROCESSING',
+                    status: 'NEW',
                     summary: 'Onboarding case - document collection',
                 },
             });

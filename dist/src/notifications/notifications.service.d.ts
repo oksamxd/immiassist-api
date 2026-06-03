@@ -2,14 +2,53 @@ import { PrismaService } from '../prisma.service';
 export declare class NotificationsService {
     private readonly prisma;
     constructor(prisma: PrismaService);
-    findByUser(userId: string): Promise<any>;
-    markAsRead(id: string): Promise<any>;
-    getUnreadCount(userId: string): Promise<any>;
+    findByUser(userId: string): Promise<{
+        id: string;
+        createdAt: Date;
+        userId: string;
+        status: import("@prisma/client").$Enums.NotificationStatus;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
+        title: string;
+        caseId: string | null;
+        type: string;
+        message: string;
+        channel: import("@prisma/client").$Enums.DeliveryChannel;
+        sentAt: Date | null;
+        readAt: Date | null;
+    }[]>;
+    markAsRead(id: string): Promise<{
+        id: string;
+        createdAt: Date;
+        userId: string;
+        status: import("@prisma/client").$Enums.NotificationStatus;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
+        title: string;
+        caseId: string | null;
+        type: string;
+        message: string;
+        channel: import("@prisma/client").$Enums.DeliveryChannel;
+        sentAt: Date | null;
+        readAt: Date | null;
+    }>;
+    getUnreadCount(userId: string): Promise<number>;
     create(params: {
         userId: string;
         caseId?: string;
         type: string;
         title: string;
         message: string;
-    }): Promise<any>;
+    }): Promise<{
+        id: string;
+        createdAt: Date;
+        userId: string;
+        status: import("@prisma/client").$Enums.NotificationStatus;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
+        title: string;
+        caseId: string | null;
+        type: string;
+        message: string;
+        channel: import("@prisma/client").$Enums.DeliveryChannel;
+        sentAt: Date | null;
+        readAt: Date | null;
+    }>;
 }

@@ -28,7 +28,6 @@ let SessionsService = class SessionsService {
             data: {
                 caseId: dto.caseId,
                 userId,
-                sessionType: dto.sessionType,
                 language: dto.language || 'English',
                 status: 'ACTIVE',
                 messages: [],
@@ -36,9 +35,10 @@ let SessionsService = class SessionsService {
         });
         const caseData = await this.prisma.case.findUnique({
             where: { id: dto.caseId },
-            include: { travelPlan: true, documents: { select: { type: true } } },
+            include: { detail: true, documents: { select: { documentType: true } } },
         });
-        const greeting = await this.ai.generateGuidance({ caseType: caseData?.caseType, documents: caseData?.documents?.map((d) => d.type) }, 'Hello, I need immigration assistance.');
+        const orchestrationResult = await this.ai.orchestrate({ caseType: caseData?.caseType, documents: caseData?.documents?.map((d) => d.documentType) }, 'Hello, I need immigration assistance.');
+        const greeting = JSON.stringify(orchestrationResult);
         const messages = [
             { role: 'system', content: 'Session started', timestamp: new Date().toISOString() },
             { role: 'assistant', content: greeting, timestamp: new Date().toISOString() },
@@ -67,7 +67,7 @@ let SessionsService = class SessionsService {
             throw new common_1.NotFoundException('Session not found');
         const caseData = await this.prisma.case.findUnique({
             where: { id: session.caseId },
-            include: { travelPlan: true, member: { include: { profile: true } } },
+            include: { detail: true, member: { include: { profile: true } } },
         });
         const existingMessages = session.messages || [];
         existingMessages.push({
@@ -80,16 +80,11 @@ let SessionsService = class SessionsService {
             status: caseData?.status,
             visaType: caseData?.member?.profile?.visaType,
             nationality: caseData?.member?.profile?.nationality,
-            travelPlan: caseData?.travelPlan
-                ? {
-                    from: caseData.travelPlan.fromLocation,
-                    to: caseData.travelPlan.toLocation,
-                    port: caseData.travelPlan.portOfEntry,
-                }
-                : null,
+            detail: caseData?.detail,
             messageHistory: existingMessages.slice(-6),
         };
-        const aiResponse = await this.ai.generateGuidance(context, message);
+        const orchestrationResult = await this.ai.orchestrate(context, message);
+        const aiResponse = JSON.stringify(orchestrationResult);
         existingMessages.push({
             role: 'assistant',
             content: aiResponse,
@@ -103,6 +98,7 @@ let SessionsService = class SessionsService {
             data: {
                 caseId: session.caseId,
                 eventType: 'AI_RESPONSE_GENERATED',
+                title: 'Jana AI Response',
                 actorType: 'SYSTEM',
                 metadata: { sessionId, messageCount: existingMessages.length },
             },

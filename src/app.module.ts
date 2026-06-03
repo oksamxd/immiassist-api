@@ -3,7 +3,6 @@ import { ConfigModule } from '@nestjs/config';
 import { PrismaService } from './prisma.service';
 import { AuthModule } from './auth/auth.module';
 import { CasesModule } from './cases/cases.module';
-import { TravelModule } from './travel/travel.module';
 import { DocumentsModule } from './documents/documents.module';
 import { SessionsModule } from './sessions/sessions.module';
 import { AiModule } from './ai/ai.module';
@@ -26,7 +25,6 @@ import { TimelineModule } from './timeline/timeline.module';
     ConfigModule.forRoot({ isGlobal: true }),
     AuthModule,
     CasesModule,
-    TravelModule,
     DocumentsModule,
     SessionsModule,
     AiModule,

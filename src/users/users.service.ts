@@ -70,7 +70,6 @@ export class UsersService {
     if (dto.visaType !== undefined) data.visaType = dto.visaType;
     if (dto.visaExpiry !== undefined) data.visaExpiry = new Date(dto.visaExpiry);
     if (dto.employerOrUniversity !== undefined) data.employerOrUniversity = dto.employerOrUniversity;
-    if (dto.portOfEntry !== undefined) data.portOfEntry = dto.portOfEntry;
     if (dto.preferredLanguage !== undefined) data.preferredLanguage = dto.preferredLanguage;
     if (dto.emergencyContact !== undefined) data.emergencyContact = dto.emergencyContact;
 
@@ -84,10 +83,10 @@ export class UsersService {
     const profile = await this.prisma.memberProfile.findUnique({ where: { userId } });
     const documents = await this.prisma.document.findMany({
       where: { case: { userId } },
-      select: { type: true },
+      select: { documentType: true },
     });
 
-    const uploadedTypes = documents.map((d) => d.type);
+    const uploadedTypes = documents.map((d: any) => d.documentType);
     return {
       profileComplete: !!(profile?.passportNumber && profile?.nationality && profile?.visaType),
       documents: {

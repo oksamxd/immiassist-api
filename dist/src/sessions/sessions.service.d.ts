@@ -7,8 +7,32 @@ export declare class SessionsService {
     private readonly ai;
     private readonly audit;
     constructor(prisma: PrismaService, ai: AiService, audit: AuditService);
-    create(userId: string, dto: CreateSessionDto): Promise<any>;
-    findOne(id: string): Promise<any>;
+    create(userId: string, dto: CreateSessionDto): Promise<{
+        messages: {
+            role: string;
+            content: string;
+            timestamp: string;
+        }[];
+        id: string;
+        language: string;
+        createdAt: Date;
+        updatedAt: Date;
+        userId: string;
+        status: import("@prisma/client").$Enums.SessionStatus;
+        aiContext: import("@prisma/client/runtime/library").JsonValue | null;
+        caseId: string;
+    }>;
+    findOne(id: string): Promise<{
+        id: string;
+        language: string;
+        createdAt: Date;
+        updatedAt: Date;
+        userId: string;
+        status: import("@prisma/client").$Enums.SessionStatus;
+        aiContext: import("@prisma/client/runtime/library").JsonValue | null;
+        caseId: string;
+        messages: import("@prisma/client/runtime/library").JsonValue | null;
+    }>;
     sendMessage(sessionId: string, userId: string, message: string): Promise<{
         userMessage: {
             role: string;
@@ -20,6 +44,32 @@ export declare class SessionsService {
         };
         messageCount: number;
     }>;
-    close(sessionId: string): Promise<any>;
-    findByUser(userId: string): Promise<any>;
+    close(sessionId: string): Promise<{
+        id: string;
+        language: string;
+        createdAt: Date;
+        updatedAt: Date;
+        userId: string;
+        status: import("@prisma/client").$Enums.SessionStatus;
+        aiContext: import("@prisma/client/runtime/library").JsonValue | null;
+        caseId: string;
+        messages: import("@prisma/client/runtime/library").JsonValue | null;
+    }>;
+    findByUser(userId: string): Promise<({
+        case: {
+            caseNumber: string;
+            caseType: import("@prisma/client").$Enums.CaseType;
+            status: import("@prisma/client").$Enums.CaseStatus;
+        };
+    } & {
+        id: string;
+        language: string;
+        createdAt: Date;
+        updatedAt: Date;
+        userId: string;
+        status: import("@prisma/client").$Enums.SessionStatus;
+        aiContext: import("@prisma/client/runtime/library").JsonValue | null;
+        caseId: string;
+        messages: import("@prisma/client/runtime/library").JsonValue | null;
+    })[]>;
 }

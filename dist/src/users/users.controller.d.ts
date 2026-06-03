@@ -5,39 +5,65 @@ export declare class UsersController {
     constructor(usersService: UsersService);
     register(dto: CreateUserDto): Promise<{
         user: {
-            id: any;
-            name: any;
-            email: any;
-            role: any;
+            id: string;
+            name: string;
+            email: string;
+            role: import("@prisma/client").$Enums.UserRole;
         };
         token: string;
     }>;
     login(dto: LoginDto): Promise<{
         user: {
-            id: any;
-            name: any;
-            email: any;
-            role: any;
+            id: string;
+            name: string;
+            email: string;
+            role: import("@prisma/client").$Enums.UserRole;
         };
         token: string;
     }>;
     getProfile(req: any): Promise<{
-        id: any;
-        name: any;
-        email: any;
-        phone: any;
-        role: any;
-        profile: any;
+        id: string;
+        name: string;
+        email: string;
+        phone: string | null;
+        role: import("@prisma/client").$Enums.UserRole;
+        profile: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            nationality: string | null;
+            passportNumber: string | null;
+            visaType: string | null;
+            visaExpiry: Date | null;
+            employerOrUniversity: string | null;
+            preferredLanguage: string;
+            currentLocation: string | null;
+            emergencyContact: string | null;
+            userId: string;
+        } | null;
     }>;
-    updateProfile(req: any, dto: UpdateProfileDto): Promise<any>;
+    updateProfile(req: any, dto: UpdateProfileDto): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        nationality: string | null;
+        passportNumber: string | null;
+        visaType: string | null;
+        visaExpiry: Date | null;
+        employerOrUniversity: string | null;
+        preferredLanguage: string;
+        currentLocation: string | null;
+        emergencyContact: string | null;
+        userId: string;
+    }>;
     getOnboardingStatus(req: any): Promise<{
         profileComplete: boolean;
         documents: {
-            PASSPORT: any;
-            VISA: any;
-            I797: any;
-            I20: any;
-            EAD: any;
+            PASSPORT: boolean;
+            VISA: boolean;
+            I797: boolean;
+            I20: boolean;
+            EAD: boolean;
         };
         profile: {
             passportNumber: boolean;

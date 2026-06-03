@@ -112,8 +112,6 @@ let UsersService = class UsersService {
             data.visaExpiry = new Date(dto.visaExpiry);
         if (dto.employerOrUniversity !== undefined)
             data.employerOrUniversity = dto.employerOrUniversity;
-        if (dto.portOfEntry !== undefined)
-            data.portOfEntry = dto.portOfEntry;
         if (dto.preferredLanguage !== undefined)
             data.preferredLanguage = dto.preferredLanguage;
         if (dto.emergencyContact !== undefined)
@@ -127,9 +125,9 @@ let UsersService = class UsersService {
         const profile = await this.prisma.memberProfile.findUnique({ where: { userId } });
         const documents = await this.prisma.document.findMany({
             where: { case: { userId } },
-            select: { type: true },
+            select: { documentType: true },
         });
-        const uploadedTypes = documents.map((d) => d.type);
+        const uploadedTypes = documents.map((d) => d.documentType);
         return {
             profileComplete: !!(profile?.passportNumber && profile?.nationality && profile?.visaType),
             documents: {

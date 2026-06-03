@@ -17,15 +17,15 @@ let AuditService = class AuditService {
     constructor(prisma) {
         this.prisma = prisma;
     }
-    async log(params) {
+    async log(dto) {
         return this.prisma.auditLog.create({
             data: {
-                actorId: params.actorId,
-                actorType: params.actorType || 'SYSTEM',
-                action: params.action,
-                entityType: params.entityType,
-                entityId: params.entityId,
-                payload: params.payload || {},
+                actorId: dto.actorId,
+                actorType: dto.actorType || 'USER',
+                action: dto.action,
+                entityType: dto.entityType,
+                entityId: dto.entityId,
+                payload: dto.payload,
             },
         });
     }

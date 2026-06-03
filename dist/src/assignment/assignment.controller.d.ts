@@ -5,15 +5,14 @@ export declare class AssignmentController {
     assignSupport(req: any, caseId: string): Promise<{
         caseId: string;
         agent: {
-            id: any;
-            name: any;
+            id: string;
         };
     }>;
     alertLawyer(req: any, caseId: string): Promise<{
         caseId: string;
         lawyer: {
-            id: any;
-            name: any;
+            id: string;
+            name: string;
         };
     }>;
     lawyerAccept(req: any, caseId: string): Promise<{
