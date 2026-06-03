@@ -8,7 +8,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.0/lucide.min.js"></script>
+    <!-- Lucide Icons: primary CDN with fallback -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script>
+        // Fallback if unpkg fails
+        if (typeof lucide === 'undefined') {
+            document.write('<script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"><\/script>');
+        }
+    </script>
     <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
@@ -185,11 +192,20 @@
         let state = {
             token: localStorage.getItem('token'),
             user: null,
-            activeRole: 'MEMBER', // for login screen toggle
+            activeRole: 'MEMBER',
             caseId: null,
             sessionId: null,
             socket: null
         };
+
+        // Safe icon initializer — works even if Lucide CDN failed to load
+        function safeCreateIcons() {
+            try {
+                if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
+                    lucide.createIcons();
+                }
+            } catch(e) { /* icons optional */ }
+        }
 
         window.onload = () => {
             if (state.token) {
@@ -201,7 +217,7 @@
 
         function renderAuth() {
             document.getElementById('app').innerHTML = document.getElementById('auth-view').innerHTML;
-            lucide.createIcons();
+            safeCreateIcons();
         }
 
         async function loginAs(email, password) {
@@ -249,7 +265,7 @@
                 const err = document.getElementById('reg-error');
                 if (err) { err.style.display = 'none'; err.textContent = ''; }
             }
-            lucide.createIcons();
+            safeCreateIcons();
         }
 
         function setRole(role, el) {
@@ -389,7 +405,7 @@
                 state.user = await res.json();
 
                 document.getElementById('app').innerHTML = document.getElementById('app-view').innerHTML;
-                lucide.createIcons();
+                safeCreateIcons();
 
                 document.getElementById('user-name').innerText = state.user.name || state.user.email;
                 document.getElementById('user-initials').innerText = (state.user.name || state.user.email).charAt(0).toUpperCase();
@@ -431,7 +447,7 @@
                 `;
             }
             nav.innerHTML = links;
-            lucide.createIcons();
+            safeCreateIcons();
         }
 
         async function loadCases() {
@@ -508,7 +524,7 @@
                     console.warn('Timeline load failed:', tlErr);
                 }
 
-                lucide.createIcons();
+                safeCreateIcons();
             } catch(e) {
                 console.error('selectCase error:', e);
             }
@@ -528,7 +544,7 @@
                     </div>
                 </div>
             `).join('');
-            lucide.createIcons();
+            safeCreateIcons();
         }
 
         function getIconForEvent(type) {
