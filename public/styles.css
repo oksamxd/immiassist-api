@@ -138,33 +138,52 @@ body {
     box-shadow: 0 2px 12px rgba(79, 70, 229, 0.4);
 }
 
-/* One-click quick access login cards */
-.quick-login-btn {
+/* Professional auth component styles */
+.auth-logo {
+    width: 56px;
+    height: 56px;
+    background: rgba(129, 140, 248, 0.12);
+    border: 1px solid rgba(129, 140, 248, 0.25);
+    border-radius: 14px;
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 0.3rem;
-    padding: 0.85rem 0.5rem;
-    background: rgba(79, 70, 229, 0.08);
-    border: 1px solid rgba(79, 70, 229, 0.25);
-    border-radius: 12px;
-    color: white;
-    cursor: pointer;
-    font-family: inherit;
-    transition: all 0.2s ease;
+    justify-content: center;
+    margin: 0 auto 1.25rem;
+}
+
+.auth-header p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.btn-full {
     width: 100%;
+    margin-top: 0.25rem;
 }
 
-.quick-login-btn:hover {
-    background: rgba(79, 70, 229, 0.22);
-    border-color: rgba(79, 70, 229, 0.5);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(79, 70, 229, 0.2);
+.form-error {
+    color: #f87171;
+    font-size: 0.82rem;
+    background: rgba(248, 113, 113, 0.08);
+    border: 1px solid rgba(248, 113, 113, 0.2);
+    border-radius: 6px;
+    padding: 0.6rem 0.75rem;
+    margin-bottom: 0.75rem;
 }
 
-.quick-login-btn:disabled {
-    cursor: not-allowed;
-    transform: none;
+.auth-footer-note {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-align: center;
+    margin-top: 1.25rem;
+    line-height: 1.6;
+}
+
+.label-optional {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: 400;
+    margin-left: 0.25rem;
 }
 
 .form-group {

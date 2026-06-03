@@ -24,85 +24,67 @@
     <!-- Auth View -->
     <template id="auth-view">
         <div class="auth-wrapper">
-            <div class="auth-card glass" style="max-width: 520px;">
+            <div class="auth-card glass">
+
                 <div class="auth-header">
+                    <div class="auth-logo">
+                        <i data-lucide="scale" style="width:32px;height:32px;color:#818cf8"></i>
+                    </div>
                     <h1>ImmiAssist</h1>
-                    <p style="color: var(--text-muted)">Immigration Operations Platform</p>
+                    <p>Immigration Case Management Platform</p>
                 </div>
 
-                <!-- Mode toggle -->
                 <div class="auth-mode-toggle">
                     <button class="mode-btn active" id="mode-signin" onclick="switchAuthMode('signin')">Sign In</button>
-                    <button class="mode-btn" id="mode-signup" onclick="switchAuthMode('signup')">Sign Up</button>
+                    <button class="mode-btn" id="mode-signup" onclick="switchAuthMode('signup')">Create Account</button>
                 </div>
 
-                <!-- ── SIGN IN PANEL ── -->
+                <!-- Sign In -->
                 <div id="signin-panel">
-                    <!-- Quick Access cards (bypass form fields entirely) -->
-                    <p style="font-size:0.78rem;color:var(--text-muted);text-align:center;margin-bottom:0.75rem;letter-spacing:0.04em;text-transform:uppercase">Quick Access</p>
-                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;margin-bottom:1.5rem">
-                        <button class="quick-login-btn" onclick="loginAs('member@immiassist.io','member123')">
-                            <span style="font-size:1.5rem">👤</span>
-                            <strong>Member</strong>
-                            <span style="font-size:0.7rem;color:var(--text-muted)">Arjun Sharma</span>
-                        </button>
-                        <button class="quick-login-btn" onclick="loginAs('lawyer@immiassist.io','lawyer123')">
-                            <span style="font-size:1.5rem">⚖️</span>
-                            <strong>Lawyer</strong>
-                            <span style="font-size:0.7rem;color:var(--text-muted)">Sarah Chen</span>
-                        </button>
-                        <button class="quick-login-btn" onclick="loginAs('associate@immiassist.io','associate123')">
-                            <span style="font-size:1.5rem">📋</span>
-                            <strong>Associate</strong>
-                            <span style="font-size:0.7rem;color:var(--text-muted)">Marcus Rivera</span>
-                        </button>
-                    </div>
-
-                    <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1.25rem">
-                        <div style="flex:1;height:1px;background:var(--border)"></div>
-                        <span style="font-size:0.75rem;color:var(--text-muted)">or sign in manually</span>
-                        <div style="flex:1;height:1px;background:var(--border)"></div>
-                    </div>
-
                     <div class="form-group">
                         <label>Email Address</label>
-                        <input type="text" id="login-email" class="form-control" placeholder="Enter email" autocomplete="off">
+                        <input type="email" id="login-email" class="form-control" placeholder="you@example.com" autocomplete="username">
                     </div>
                     <div class="form-group">
                         <label>Password</label>
-                        <input type="password" id="login-password" class="form-control" placeholder="Password" autocomplete="new-password">
+                        <input type="password" id="login-password" class="form-control" placeholder="Enter your password" autocomplete="current-password">
                     </div>
-                    <div id="login-error" style="color:#ff6b6b;font-size:0.82rem;margin-bottom:0.75rem;display:none"></div>
-                    <button class="btn btn-primary" style="width:100%" onclick="login()">
-                        Sign In <i data-lucide="arrow-right"></i>
+                    <div id="login-error" class="form-error" style="display:none"></div>
+                    <button class="btn btn-primary btn-full" id="signin-btn" onclick="login()">
+                        Sign In
                     </button>
+                    <p class="auth-footer-note">
+                        By signing in you agree to the ImmiAssist Terms of Service and Privacy Policy.
+                    </p>
                 </div>
 
-                <!-- ── SIGN UP PANEL ── -->
+                <!-- Create Account -->
                 <div id="signup-panel" style="display:none">
-                    <div class="form-group">
-                        <label>Full Name</label>
-                        <input type="text" id="reg-name" class="form-control" placeholder="Your full name" autocomplete="off">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Full Name</label>
+                            <input type="text" id="reg-name" class="form-control" placeholder="Full legal name" autocomplete="name">
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>Email Address</label>
-                        <input type="text" id="reg-email" class="form-control" placeholder="your@email.com" autocomplete="off">
+                        <input type="email" id="reg-email" class="form-control" placeholder="you@example.com" autocomplete="email">
                     </div>
                     <div class="form-group">
-                        <label>Phone <span style="color:var(--text-muted);font-size:0.8em">(optional)</span></label>
-                        <input type="text" id="reg-phone" class="form-control" placeholder="+1-555-0000" autocomplete="off">
+                        <label>Phone Number <span class="label-optional">Optional</span></label>
+                        <input type="tel" id="reg-phone" class="form-control" placeholder="+1 (555) 000-0000" autocomplete="tel">
                     </div>
                     <div class="form-group">
                         <label>Password</label>
-                        <input type="password" id="reg-password" class="form-control" placeholder="Min. 6 characters" autocomplete="new-password">
+                        <input type="password" id="reg-password" class="form-control" placeholder="Minimum 6 characters" autocomplete="new-password">
                     </div>
-                    <div id="reg-error" style="color:#ff6b6b;font-size:0.82rem;margin-top:0.5rem;display:none"></div>
-                    <button class="btn btn-primary" style="width:100%;margin-top:1rem" onclick="register()">
-                        Create Account <i data-lucide="user-plus"></i>
+                    <div id="reg-error" class="form-error" style="display:none"></div>
+                    <button class="btn btn-primary btn-full" id="register-btn" onclick="register()">
+                        Create Account
                     </button>
-                    <div style="margin-top:1rem;font-size:0.78rem;color:var(--text-muted);text-align:center">
-                        New accounts are saved as <strong>Member</strong> role by default.
-                    </div>
+                    <p class="auth-footer-note">
+                        All accounts are verified by our team. Access level is assigned based on your role within the organisation.
+                    </p>
                 </div>
 
             </div>
