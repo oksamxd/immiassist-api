@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ImmiAssist | AI-Powered Legal Platform</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.0/lucide.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+    <div id="app"></div>
+
+    <!-- Auth View -->
+    <template id="auth-view">
+        <div class="auth-wrapper">
+            <div class="auth-card glass">
+                <div class="auth-header">
+                    <h1>ImmiAssist</h1>
+                    <p style="color: var(--text-muted)">Immigration Operations Platform</p>
+                </div>
+                
+                <div class="auth-tabs">
+                    <div class="auth-tab active" onclick="setRole('MEMBER')">Member</div>
+                    <div class="auth-tab" onclick="setRole('LEGAL_ASSOCIATE')">Associate</div>
+                    <div class="auth-tab" onclick="setRole('LAWYER')">Lawyer</div>
+                </div>
+
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="login-email" class="form-control" placeholder="Enter demo email">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="login-password" class="form-control" placeholder="••••••••" value="member123">
+                </div>
+                <button class="btn btn-primary" style="width: 100%; margin-top: 1rem" onclick="login()">
+                    Sign In <i data-lucide="arrow-right"></i>
+                </button>
+                <div style="margin-top: 2rem; font-size: 0.8rem; color: var(--text-muted); text-align: center;">
+                    Demo accounts: member@immiassist.io | lawyer@... | associate@... (pass: member123 / lawyer123 / associate123)
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- App Layout (3-Panel) -->
+    <template id="app-view">
+        <div class="app-layout">
+            <!-- Left Sidebar -->
+            <aside class="sidebar glass-panel">
+                <div class="brand">
+                    <i data-lucide="scale"></i> ImmiAssist
+                </div>
+                
+                <nav id="sidebar-nav">
+                    <!-- Populated by JS based on role -->
+                </nav>
+
+                <div class="user-profile-widget">
+                    <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                        <span id="user-initials">U</span>
+                    </div>
+                    <div style="flex: 1; overflow: hidden">
+                        <div style="font-weight: 600; white-space: nowrap; text-overflow: ellipsis; overflow: hidden" id="user-name">User Name</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted)" id="user-role-label">Member</div>
+                    </div>
+                    <button class="btn-icon" onclick="logout()" title="Logout">
+                        <i data-lucide="log-out" style="width: 18px; height: 18px"></i>
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Center Area -->
+            <main class="main-area">
+                <header class="top-header">
+                    <div style="display: flex; align-items: center; gap: 1rem">
+                        <h2 style="font-size: 1.25rem; font-weight: 600" id="header-title">Active Case</h2>
+                        <span style="color: var(--text-muted); font-size: 0.875rem" id="header-case-number"></span>
+                    </div>
+                    <div class="header-badges" id="header-badges">
+                        <!-- Populated dynamically -->
+                    </div>
+                </header>
+
+                <div class="chat-container" id="chat-messages">
+                    <!-- Messages populated here -->
+                </div>
+
+                <div class="input-area">
+                    <div class="chat-input-wrapper">
+                        <button class="btn-icon" onclick="document.getElementById('file-upload').click()" title="Upload Document">
+                            <i data-lucide="paperclip" style="width: 20px"></i>
+                        </button>
+                        <input type="file" id="file-upload" style="display: none" onchange="uploadDocument(event)">
+                        
+                        <input type="text" id="chat-input" placeholder="Type a message to Jana AI..." onkeypress="handleKeyPress(event)">
+                        
+                        <button class="btn-icon primary" onclick="sendMessage()">
+                            <i data-lucide="send" style="width: 20px"></i>
+                        </button>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Right Panel (Context & Timeline) -->
+            <aside class="context-panel glass-panel">
+                <div id="panel-documents">
+                    <h3 class="section-title"><i data-lucide="folder"></i> Required Documents</h3>
+                    <div style="display: flex; flex-direction: column; gap: 0.75rem" id="docs-list">
+                        <!-- Docs populated here -->
+                    </div>
+                </div>
+
+                <div style="margin-top: 1rem">
+                    <h3 class="section-title"><i data-lucide="clock"></i> Case Timeline</h3>
+                    <div class="timeline" id="timeline-list">
+                        <!-- Timeline events populated here -->
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </template>
+
+    <script>
+        const API = '/api';
+        let state = {
+            token: localStorage.getItem('token'),
+            user: null,
+            activeRole: 'MEMBER', // for login screen toggle
+            caseId: null,
+            sessionId: null,
+            socket: null
+        };
+
+        window.onload = () => {
+            if (state.token) {
+                initApp();
+            } else {
+                renderAuth();
+            }
+        };
+
+        function renderAuth() {
+            document.getElementById('app').innerHTML = document.getElementById('auth-view').innerHTML;
+            lucide.createIcons();
+            setRole('MEMBER');
+        }
+
+        function setRole(role) {
+            state.activeRole = role;
+            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            const emailMap = {
+                'MEMBER': 'member@immiassist.io',
+                'LEGAL_ASSOCIATE': 'associate@immiassist.io',
+                'LAWYER': 'lawyer@immiassist.io'
+            };
+            const passMap = {
+                'MEMBER': 'member123',
+                'LEGAL_ASSOCIATE': 'associate123',
+                'LAWYER': 'lawyer123'
+            };
+            
+            document.getElementById('login-email').value = emailMap[role];
+            document.getElementById('login-password').value = passMap[role];
+        }
+
+        async function login() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            try {
+                const res = await fetch(`${API}/users/login`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({email, password})
+                });
+                const data = await res.json();
+                if(res.ok) {
+                    state.token = data.token;
+                    state.user = data.user;
+                    localStorage.setItem('token', data.token);
+                    initApp();
+                } else alert(data.message);
+            } catch(e) { alert('Login failed'); }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            state = { token: null, user: null, activeRole: 'MEMBER', caseId: null, socket: null };
+            if(window.socket) window.socket.disconnect();
+            renderAuth();
+        }
+
+        async function initApp() {
+            try {
+                // Fetch profile
+                const res = await fetch(`${API}/users/profile`, {
+                    headers: {'Authorization': `Bearer ${state.token}`}
+                });
+                if(!res.ok) throw new Error('Invalid token');
+                state.user = await res.json();
+                
+                document.getElementById('app').innerHTML = document.getElementById('app-view').innerHTML;
+                lucide.createIcons();
+                
+                // Set UI
+                document.getElementById('user-name').innerText = state.user.name;
+                document.getElementById('user-initials').innerText = state.user.name.charAt(0);
+                document.getElementById('user-role-label').innerText = state.user.role.replace('_', ' ');
+
+                setupSidebar();
+                await loadCases();
+                initWebSocket();
+            } catch (e) {
+                logout();
+            }
+        }
+
+        function setupSidebar() {
+            const nav = document.getElementById('sidebar-nav');
+            let links = '';
+            if (state.user.role === 'MEMBER') {
+                links = `
+                    <div class="nav-item active"><i data-lucide="layout-dashboard"></i> Dashboard</div>
+                    <div class="nav-item"><i data-lucide="folder"></i> My Cases</div>
+                    <div class="nav-item"><i data-lucide="file-text"></i> Documents</div>
+                `;
+            } else if (state.user.role === 'LAWYER') {
+                links = `
+                    <div class="nav-item active"><i data-lucide="briefcase"></i> Active Cases</div>
+                    <div class="nav-item"><i data-lucide="calendar"></i> Appointments</div>
+                    <div class="nav-item"><i data-lucide="scale"></i> Court Dates</div>
+                `;
+            } else {
+                links = `
+                    <div class="nav-item active"><i data-lucide="inbox"></i> Intake Queue</div>
+                    <div class="nav-item"><i data-lucide="file-check"></i> Document Review</div>
+                `;
+            }
+            nav.innerHTML = links;
+            lucide.createIcons();
+        }
+
+        async function loadCases() {
+            const res = await fetch(`${API}/cases`, {
+                headers: {'Authorization': `Bearer ${state.token}`}
+            });
+            const cases = await res.json();
+            if(cases.length > 0) {
+                selectCase(cases[0]);
+            } else if (state.user.role === 'MEMBER') {
+                // Auto create demo case if none
+                const createRes = await fetch(`${API}/cases`, {
+                    method: 'POST',
+                    headers: {'Authorization': `Bearer ${state.token}`, 'Content-Type': 'application/json'},
+                    body: JSON.stringify({ caseType: 'VISA_PROCESSING' })
+                });
+                const newCase = await createRes.json();
+                selectCase(newCase);
+            }
+        }
+
+        async function selectCase(caseObj) {
+            state.caseId = caseObj.id;
+            
+            // Header
+            document.getElementById('header-case-number').innerText = caseObj.caseNumber;
+            document.getElementById('header-badges').innerHTML = `
+                <span class="badge primary">${caseObj.caseType.replace('_', ' ')}</span>
+                <span class="badge warning">${caseObj.status.replace(/_/g, ' ')}</span>
+            `;
+
+            // Init Chat
+            const sessRes = await fetch(`${API}/sessions`, {
+                method: 'POST',
+                headers: {'Authorization': `Bearer ${state.token}`, 'Content-Type': 'application/json'},
+                body: JSON.stringify({ caseId: caseObj.id, sessionType: 'INTAKE' })
+            });
+            const session = await sessRes.json();
+            state.sessionId = session.id;
+            
+            const chatContainer = document.getElementById('chat-messages');
+            chatContainer.innerHTML = '';
+            
+            if (session.messages) {
+                session.messages.forEach(m => {
+                    if (m.role !== 'system') appendMessage(m.role, m.content, m.options);
+                });
+            }
+
+            // Load Timeline
+            const tlRes = await fetch(`${API}/timeline/${caseObj.id}`, {
+                headers: {'Authorization': `Bearer ${state.token}`}
+            });
+            const tlData = await tlRes.json();
+            renderTimeline(tlData.events);
+            
+            lucide.createIcons();
+        }
+
+        function renderTimeline(events) {
+            const container = document.getElementById('timeline-list');
+            container.innerHTML = events.map(e => `
+                <div class="timeline-event">
+                    <div class="event-icon"><i data-lucide="${getIconForEvent(e.eventType)}" style="width: 20px; color: var(--primary)"></i></div>
+                    <div class="event-content">
+                        <h4>${e.title}</h4>
+                        <p>${e.description || ''}</p>
+                        <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.5rem">
+                            ${new Date(e.createdAt).toLocaleString()}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function getIconForEvent(type) {
+            if(type.includes('DOCUMENT')) return 'file';
+            if(type.includes('LAWYER')) return 'briefcase';
+            if(type.includes('APPOINTMENT') || type.includes('COURT')) return 'calendar';
+            if(type.includes('STATUS')) return 'activity';
+            return 'check-circle';
+        }
+
+        function appendMessage(role, text, options = []) {
+            const container = document.getElementById('chat-messages');
+            let optsHtml = '';
+            
+            if (options && options.length > 0) {
+                optsHtml = `<div class="message-options">
+                    ${options.map(o => `<button class="msg-opt-btn" onclick="sendOption('${o}')">${o}</button>`).join('')}
+                </div>`;
+            }
+
+            // Simple markdown parser for bold and lists
+            let formattedText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                    .replace(/\n/g, '<br>');
+
+            container.innerHTML += `
+                <div class="message ${role === 'assistant' ? 'ai' : 'user'}">
+                    ${formattedText}
+                    ${optsHtml}
+                </div>
+            `;
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') sendMessage();
+        }
+
+        function sendOption(text) {
+            document.getElementById('chat-input').value = text;
+            sendMessage();
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text || !state.sessionId) return;
+            
+            input.value = '';
+            appendMessage('user', text);
+
+            const res = await fetch(`${API}/sessions/${state.sessionId}/message`, {
+                method: 'POST',
+                headers: {'Authorization': `Bearer ${state.token}`, 'Content-Type': 'application/json'},
+                body: JSON.stringify({ message: text })
+            });
+            
+            const data = await res.json();
+            
+            // Parse structured JSON response from AI orchestrator
+            let aiMsg = data.aiResponse.content;
+            let options = [];
+            
+            try {
+                const parsed = JSON.parse(aiMsg);
+                aiMsg = parsed.message;
+                options = parsed.options || [];
+                
+                // If AI decided to change state or create event based on intent
+                if (parsed.timelineEvent) {
+                    renderTimeline([{ 
+                        ...parsed.timelineEvent, 
+                        createdAt: new Date().toISOString(),
+                        eventType: parsed.timelineEvent.type 
+                    }]);
+                }
+            } catch(e) {
+                // fallback if not JSON
+            }
+
+            appendMessage('assistant', aiMsg, options);
+        }
+
+        async function uploadDocument(e) {
+            const file = e.target.files[0];
+            if(!file || !state.caseId) return;
+
+            appendMessage('user', `📎 Uploading document: ${file.name}...`);
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                const res = await fetch(`${API}/documents/${state.caseId}?type=OTHER`, {
+                    method: 'POST',
+                    headers: {'Authorization': `Bearer ${state.token}`},
+                    body: formData
+                });
+                
+                if (res.ok) {
+                    appendMessage('assistant', `✅ Successfully received ${file.name}. It has been added to your case file.`);
+                    // Reload timeline
+                    loadCases(); 
+                }
+            } catch(err) {
+                appendMessage('assistant', '❌ Upload failed. Please try again.');
+            }
+        }
+
+        function initWebSocket() {
+            if(window.socket) return;
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            window.socket = io(`${protocol}//${window.location.host}`);
+            
+            window.socket.on('connect', () => {
+                if(state.caseId) window.socket.emit('join_room', `case:${state.caseId}`);
+            });
+            
+            window.socket.on('timeline.updated', (payload) => {
+                console.log('Realtime timeline update', payload);
+                // In full implementation, incrementally update timeline UI
+            });
+        }
+    </script>
+</body>
+</html>
