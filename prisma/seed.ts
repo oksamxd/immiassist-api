@@ -26,10 +26,16 @@ async function main() {
         create: {
           nationality: 'Indian',
           passportNumber: 'P1234567',
+          countryOfResidence: 'United States',
           visaType: 'F-1',
-          employerOrUniversity: 'MIT',
           preferredLanguage: 'en',
           currentLocation: 'Cambridge, MA',
+        },
+      },
+      legalProfile: {
+        create: {
+          currentVisaStatus: 'F-1 OPT',
+          currentEmployer: 'MIT',
         },
       },
     },

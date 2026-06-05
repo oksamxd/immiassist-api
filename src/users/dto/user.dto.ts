@@ -40,21 +40,44 @@ export class UpdateProfileDto {
 
   @IsOptional()
   @IsString()
-  visaExpiry?: string;
-
-  @IsOptional()
-  @IsString()
-  employerOrUniversity?: string;
-
-  @IsOptional()
-  @IsString()
-  portOfEntry?: string;
-
-  @IsOptional()
-  @IsString()
   preferredLanguage?: string;
 
   @IsOptional()
   @IsString()
   emergencyContact?: string;
+
+  @IsOptional()
+  @IsString()
+  countryOfResidence?: string;
+
+  @IsOptional()
+  travelHistory?: any;
+
+  @IsOptional()
+  @IsString()
+  currentVisaStatus?: string;
+
+  @IsOptional()
+  @IsString()
+  visaExpiry?: string;
+
+  @IsOptional()
+  immigrationHistory?: any;
+
+  @IsOptional()
+  previousNotices?: any;
+
+  @IsOptional()
+  previousDenials?: any;
+
+  @IsOptional()
+  @IsString()
+  currentEmployer?: string;
+
+  @IsOptional()
+  @IsString()
+  university?: string;
+
+  @IsOptional()
+  dependents?: any;
 }

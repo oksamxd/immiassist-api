@@ -73,6 +73,9 @@ let UsersService = class UsersService {
         await this.prisma.memberProfile.create({
             data: { userId: user.id },
         });
+        await this.prisma.legalProfile.create({
+            data: { userId: user.id },
+        });
         const token = this.jwt.sign({ sub: user.id, email: user.email, role: user.role });
         return { user: { id: user.id, name: user.name, email: user.email, role: user.role }, token };
     }
@@ -87,7 +90,7 @@ let UsersService = class UsersService {
     async getProfile(userId) {
         const user = await this.prisma.user.findUnique({
             where: { id: userId },
-            include: { profile: true },
+            include: { profile: true, legalProfile: true },
         });
         if (!user)
             throw new common_1.UnauthorizedException('User not found');
@@ -98,38 +101,70 @@ let UsersService = class UsersService {
             phone: user.phone,
             role: user.role,
             profile: user.profile,
+            legalProfile: user.legalProfile,
         };
     }
     async updateProfile(userId, dto) {
-        const data = {};
+        const memberData = {};
         if (dto.passportNumber !== undefined)
-            data.passportNumber = dto.passportNumber;
+            memberData.passportNumber = dto.passportNumber;
         if (dto.nationality !== undefined)
-            data.nationality = dto.nationality;
+            memberData.nationality = dto.nationality;
         if (dto.visaType !== undefined)
-            data.visaType = dto.visaType;
-        if (dto.visaExpiry !== undefined)
-            data.visaExpiry = new Date(dto.visaExpiry);
-        if (dto.employerOrUniversity !== undefined)
-            data.employerOrUniversity = dto.employerOrUniversity;
+            memberData.visaType = dto.visaType;
+        if (dto.countryOfResidence !== undefined)
+            memberData.countryOfResidence = dto.countryOfResidence;
         if (dto.preferredLanguage !== undefined)
-            data.preferredLanguage = dto.preferredLanguage;
+            memberData.preferredLanguage = dto.preferredLanguage;
         if (dto.emergencyContact !== undefined)
-            data.emergencyContact = dto.emergencyContact;
-        return this.prisma.memberProfile.update({
-            where: { userId },
-            data,
-        });
+            memberData.emergencyContact = dto.emergencyContact;
+        if (dto.travelHistory !== undefined)
+            memberData.travelHistory = dto.travelHistory;
+        if (Object.keys(memberData).length > 0) {
+            await this.prisma.memberProfile.update({
+                where: { userId },
+                data: memberData,
+            });
+        }
+        const legalData = {};
+        if (dto.currentVisaStatus !== undefined)
+            legalData.currentVisaStatus = dto.currentVisaStatus;
+        if (dto.visaExpiry !== undefined)
+            legalData.visaExpiry = new Date(dto.visaExpiry);
+        if (dto.immigrationHistory !== undefined)
+            legalData.immigrationHistory = dto.immigrationHistory;
+        if (dto.previousNotices !== undefined)
+            legalData.previousNotices = dto.previousNotices;
+        if (dto.previousDenials !== undefined)
+            legalData.previousDenials = dto.previousDenials;
+        if (dto.currentEmployer !== undefined)
+            legalData.currentEmployer = dto.currentEmployer;
+        if (dto.university !== undefined)
+            legalData.university = dto.university;
+        if (dto.dependents !== undefined)
+            legalData.dependents = dto.dependents;
+        if (Object.keys(legalData).length > 0) {
+            await this.prisma.legalProfile.upsert({
+                where: { userId },
+                create: { userId, ...legalData },
+                update: legalData,
+            });
+        }
+        return this.getProfile(userId);
     }
     async getOnboardingStatus(userId) {
         const profile = await this.prisma.memberProfile.findUnique({ where: { userId } });
+        const legalProfile = await this.prisma.legalProfile.findUnique({ where: { userId } });
         const documents = await this.prisma.document.findMany({
             where: { case: { userId } },
             select: { documentType: true },
         });
         const uploadedTypes = documents.map((d) => d.documentType);
+        const memberProfileComplete = !!(profile?.passportNumber && profile?.nationality && profile?.countryOfResidence);
+        const legalProfileComplete = !!(legalProfile?.currentVisaStatus && legalProfile?.currentEmployer);
         return {
-            profileComplete: !!(profile?.passportNumber && profile?.nationality && profile?.visaType),
+            profileComplete: memberProfileComplete,
+            legalProfileComplete: legalProfileComplete,
             documents: {
                 PASSPORT: uploadedTypes.includes('PASSPORT'),
                 VISA: uploadedTypes.includes('VISA'),
@@ -140,10 +175,14 @@ let UsersService = class UsersService {
             profile: {
                 passportNumber: !!profile?.passportNumber,
                 nationality: !!profile?.nationality,
+                countryOfResidence: !!profile?.countryOfResidence,
                 visaType: !!profile?.visaType,
-                visaExpiry: !!profile?.visaExpiry,
-                employerOrUniversity: !!profile?.employerOrUniversity,
             },
+            legalProfile: {
+                currentVisaStatus: !!legalProfile?.currentVisaStatus,
+                visaExpiry: !!legalProfile?.visaExpiry,
+                currentEmployer: !!legalProfile?.currentEmployer,
+            }
         };
     }
 };

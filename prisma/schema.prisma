@@ -163,6 +163,7 @@ model User {
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   profile          MemberProfile?
+  legalProfile     LegalProfile?
   legalAssociate   LegalAssociate?
   lawyer           Lawyer?
   memberCases      Case[]           @relation("MemberCases")
@@ -182,18 +183,39 @@ model MemberProfile {
   userId               String   @unique @map("user_id")
   nationality          String?
   passportNumber       String?  @map("passport_number")
+  countryOfResidence   String?  @map("country_of_residence")
   visaType             String?  @map("visa_type")
-  visaExpiry           DateTime? @map("visa_expiry")
-  employerOrUniversity String?  @map("employer_or_university")
   preferredLanguage    String   @default("en") @map("preferred_language")
   currentLocation      String?  @map("current_location")
   emergencyContact     String?  @map("emergency_contact")
+  travelHistory        Json?    @map("travel_history") // Stores countries visited, previous visa types, travel frequency
   createdAt            DateTime @default(now()) @map("created_at")
   updatedAt            DateTime @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("member_profiles")
+}
+
+// ─── LEGAL PROFILE ───────────────────────────────────────────────────────────
+
+model LegalProfile {
+  id                  String   @id @default(uuid())
+  userId              String   @unique @map("user_id")
+  currentVisaStatus   String?  @map("current_visa_status")
+  visaExpiry          DateTime? @map("visa_expiry")
+  immigrationHistory  Json?    @map("immigration_history")
+  previousNotices     Json?    @map("previous_notices")
+  previousDenials     Json?    @map("previous_denials")
+  currentEmployer     String?  @map("current_employer")
+  university          String?
+  dependents          Json?
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("legal_profiles")
 }
 
 // ─── LEGAL ASSOCIATE ─────────────────────────────────────────────────────────

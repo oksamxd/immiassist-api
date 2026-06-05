@@ -4,6 +4,16 @@ export declare class SessionsController {
     private readonly sessionsService;
     constructor(sessionsService: SessionsService);
     create(req: any, dto: CreateSessionDto): Promise<{
+        id: string;
+        language: string;
+        createdAt: Date;
+        updatedAt: Date;
+        userId: string;
+        status: import("@prisma/client").$Enums.SessionStatus;
+        aiContext: import("@prisma/client/runtime/library").JsonValue | null;
+        caseId: string;
+        messages: import("@prisma/client/runtime/library").JsonValue | null;
+    } | {
         messages: {
             role: string;
             content: string;
@@ -55,6 +65,8 @@ export declare class SessionsController {
             role: string;
             content: string;
         };
+        phase: import("../ai/ai.service").OnboardingPhase | undefined;
+        nextAction: string | undefined;
         messageCount: number;
     }>;
     close(id: string): Promise<{

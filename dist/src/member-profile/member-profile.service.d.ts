@@ -14,12 +14,12 @@ export declare class MemberProfileService {
         updatedAt: Date;
         nationality: string | null;
         passportNumber: string | null;
+        countryOfResidence: string | null;
         visaType: string | null;
-        visaExpiry: Date | null;
-        employerOrUniversity: string | null;
         preferredLanguage: string;
         currentLocation: string | null;
         emergencyContact: string | null;
+        travelHistory: import("@prisma/client/runtime/library").JsonValue | null;
         userId: string;
     }) | null>;
     updateProfile(userId: string, dto: any): Promise<{
@@ -28,12 +28,12 @@ export declare class MemberProfileService {
         updatedAt: Date;
         nationality: string | null;
         passportNumber: string | null;
+        countryOfResidence: string | null;
         visaType: string | null;
-        visaExpiry: Date | null;
-        employerOrUniversity: string | null;
         preferredLanguage: string;
         currentLocation: string | null;
         emergencyContact: string | null;
+        travelHistory: import("@prisma/client/runtime/library").JsonValue | null;
         userId: string;
     }>;
 }

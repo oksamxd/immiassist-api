@@ -24,17 +24,31 @@
     <!-- Auth View -->
     <template id="auth-view">
         <div class="auth-wrapper">
-            <div class="auth-card glass">
-
+            <div class="auth-card glass" id="portal-selector" style="text-align:center;">
                 <div class="auth-header">
                     <div class="auth-logo">
                         <i data-lucide="scale" style="width:32px;height:32px;color:#818cf8"></i>
                     </div>
                     <h1>ImmiAssist</h1>
-                    <p>Immigration Case Management Platform</p>
+                    <p>Select your portal to continue</p>
+                </div>
+                <div style="display:flex; flex-direction:column; gap: 1rem; margin-top: 2rem;">
+                    <button class="btn btn-primary" onclick="showPortalLogin('MEMBER')">Member Portal</button>
+                    <button class="btn btn-secondary" onclick="showPortalLogin('LEGAL_ASSOCIATE')">Legal Associate Portal</button>
+                    <button class="btn btn-secondary" onclick="showPortalLogin('LAWYER')">Lawyer Portal</button>
+                </div>
+            </div>
+
+            <div class="auth-card glass" id="portal-login" style="display:none;">
+                <div class="auth-header">
+                    <div class="auth-logo">
+                        <i data-lucide="scale" style="width:32px;height:32px;color:#818cf8"></i>
+                    </div>
+                    <h1 id="portal-title">Portal Login</h1>
+                    <p>Enter your credentials to access the system</p>
                 </div>
 
-                <div class="auth-mode-toggle">
+                <div class="auth-mode-toggle" id="member-auth-toggle" style="display:none;">
                     <button class="mode-btn active" id="mode-signin" onclick="switchAuthMode('signin')">Sign In</button>
                     <button class="mode-btn" id="mode-signup" onclick="switchAuthMode('signup')">Create Account</button>
                 </div>
@@ -54,7 +68,7 @@
                         Sign In
                     </button>
                     <p class="auth-footer-note">
-                        By signing in you agree to the ImmiAssist Terms of Service and Privacy Policy.
+                        <a href="#" onclick="showPortalSelector()">← Back to Portal Selection</a>
                     </p>
                 </div>
 
@@ -83,7 +97,7 @@
                         Create Account
                     </button>
                     <p class="auth-footer-note">
-                        All accounts are verified by our team. Access level is assigned based on your role within the organisation.
+                        <a href="#" onclick="showPortalSelector()">← Back to Portal Selection</a>
                     </p>
                 </div>
 
@@ -93,7 +107,7 @@
 
     <!-- App Layout (3-Panel) -->
     <template id="app-view">
-        <div class="app-layout">
+        <div class="app-layout" id="main-app-layout">
             <!-- Left Sidebar -->
             <aside class="sidebar glass-panel">
                 <div class="brand">
@@ -119,8 +133,24 @@
             </aside>
 
             <!-- Center Area -->
-            <main class="main-area">
-                <header class="top-header">
+            <main class="main-area" id="main-area-content">
+                
+                <!-- Dashboard View -->
+                <div id="dashboard-view-container" style="display:none; padding: 2rem; overflow-y:auto; height:100%;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem;">
+                        <h2 style="font-size: 1.5rem; font-weight: 700;">Dashboard</h2>
+                        <button class="btn btn-primary" onclick="startNewCase()">
+                            <i data-lucide="plus" style="width:16px;"></i> New Case
+                        </button>
+                    </div>
+                    <div class="dashboard-grid" id="dashboard-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+                        <!-- Cards injected here -->
+                    </div>
+                </div>
+
+                <!-- Case View -->
+                <div id="case-view-container" style="display:flex; flex-direction:column; height:100%;">
+                    <header class="top-header">
                     <div style="display: flex; align-items: center; gap: 1rem">
                         <h2 style="font-size: 1.25rem; font-weight: 600" id="header-title">Active Case</h2>
                         <span style="color: var(--text-muted); font-size: 0.875rem" id="header-case-number"></span>
@@ -148,10 +178,11 @@
                         </button>
                     </div>
                 </div>
+                </div>
             </main>
 
             <!-- Right Panel (Context & Timeline) -->
-            <aside class="context-panel glass-panel">
+            <aside class="context-panel glass-panel" id="right-panel-context">
                 <div id="panel-documents">
                     <h3 class="section-title"><i data-lucide="folder"></i> Required Documents</h3>
                     <div style="display: flex; flex-direction: column; gap: 0.75rem" id="docs-list">
@@ -250,10 +281,23 @@
             safeCreateIcons();
         }
 
-        function setRole(role, el) {
+        function showPortalSelector() {
+            document.getElementById('portal-selector').style.display = 'block';
+            document.getElementById('portal-login').style.display = 'none';
+        }
+
+        function showPortalLogin(role) {
             state.activeRole = role;
-            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
-            if (el) el.classList.add('active');
+            document.getElementById('portal-selector').style.display = 'none';
+            document.getElementById('portal-login').style.display = 'block';
+            
+            const titles = {
+                'MEMBER': 'Member Portal',
+                'LEGAL_ASSOCIATE': 'Legal Associate Portal',
+                'LAWYER': 'Lawyer Portal'
+            };
+            document.getElementById('portal-title').innerText = titles[role];
+            
             const emailMap = {
                 'MEMBER': 'member@immiassist.io',
                 'LEGAL_ASSOCIATE': 'associate@immiassist.io',
@@ -266,6 +310,15 @@
             };
             document.getElementById('login-email').value = emailMap[role];
             document.getElementById('login-password').value = passMap[role];
+
+            // Only members can create accounts directly
+            const toggle = document.getElementById('member-auth-toggle');
+            if (role === 'MEMBER') {
+                toggle.style.display = 'flex';
+            } else {
+                toggle.style.display = 'none';
+                switchAuthMode('signin');
+            }
         }
 
         async function register() {
@@ -393,12 +446,15 @@
                     if (onbRes.ok) {
                         const onb = await onbRes.json();
                         const profileOk = onb.profileComplete;
+                        const legalProfileOk = onb.legalProfileComplete;
                         const docsOk = onb.documents && Object.values(onb.documents).some(v => v);
-                        // Check if profile fields are filled
-                        const profileFields = onb.profile || {};
-                        const profileFilled = profileFields.passportNumber && profileFields.nationality && profileFields.visaType;
-                        if (!profileFilled) {
-                            await renderOnboarding('PROFILE');
+                        
+                        if (!profileOk) {
+                            await renderOnboarding('MEMBER_PROFILE');
+                            return;
+                        }
+                        if (!legalProfileOk) {
+                            await renderOnboarding('LEGAL_PROFILE');
                             return;
                         }
                         if (!docsOk) {
@@ -432,11 +488,12 @@
         }
 
         async function renderOnboarding(startPhase) {
-            const phase = startPhase || 'PROFILE';
+            const phase = startPhase || 'MEMBER_PROFILE';
             const steps = [
-                { key: 'PROFILE',   label: 'Profile',   icon: 'user' },
-                { key: 'DOCUMENTS', label: 'Documents', icon: 'file-text' },
-                { key: 'REVIEW',    label: 'Review',    icon: 'check-circle' },
+                { key: 'MEMBER_PROFILE', label: 'Member Profile', icon: 'user' },
+                { key: 'LEGAL_PROFILE',  label: 'Legal Profile',  icon: 'briefcase' },
+                { key: 'DOCUMENTS',      label: 'Documents',      icon: 'file-text' },
+                { key: 'REVIEW',         label: 'Review',         icon: 'check-circle' },
             ];
             const stepIdx = steps.findIndex(s => s.key === phase);
 
@@ -456,9 +513,10 @@
                                     <div>
                                         <div class="onb-step-label">${s.label}</div>
                                         <div class="onb-step-desc">${
-                                            i === 0 ? 'Nationality, visa, contact details' :
-                                            i === 1 ? 'Passport, visa documents' :
-                                            'Legal team review'
+                                            i === 0 ? 'Basic profile & contact info' :
+                                            i === 1 ? 'Visa & immigration history' :
+                                            i === 2 ? 'Required document uploads' :
+                                            'Final legal team review'
                                         }</div>
                                     </div>
                                 </div>
@@ -591,7 +649,8 @@
             const header = document.querySelector('.onb-header h2');
             if (!header) return null;
             const t = header.innerText;
-            if (t.includes('Profile')) return 'PROFILE';
+            if (t.includes('Member Profile')) return 'MEMBER_PROFILE';
+            if (t.includes('Legal Profile')) return 'LEGAL_PROFILE';
             if (t.includes('Documents')) return 'DOCUMENTS';
             if (t.includes('Review')) return 'REVIEW';
             return 'ACTIVE';
@@ -660,20 +719,20 @@
             let links = '';
             if (state.user.role === 'MEMBER') {
                 links = `
-                    <div class="nav-item active"><i data-lucide="layout-dashboard"></i> Dashboard</div>
-                    <div class="nav-item"><i data-lucide="folder"></i> My Cases</div>
-                    <div class="nav-item"><i data-lucide="file-text"></i> Documents</div>
+                    <div class="nav-item active" onclick="loadCases()" style="cursor:pointer"><i data-lucide="layout-dashboard"></i> Dashboard</div>
+                    <div class="nav-item" onclick="selectCaseId(window.casesList?.[0]?.id)" style="cursor:pointer"><i data-lucide="folder"></i> Active Case</div>
+                    <div class="nav-item" style="cursor:pointer"><i data-lucide="file-text"></i> Documents</div>
                 `;
             } else if (state.user.role === 'LAWYER') {
                 links = `
-                    <div class="nav-item active"><i data-lucide="briefcase"></i> Active Cases</div>
-                    <div class="nav-item"><i data-lucide="calendar"></i> Appointments</div>
-                    <div class="nav-item"><i data-lucide="scale"></i> Court Dates</div>
+                    <div class="nav-item active" onclick="loadCases()" style="cursor:pointer"><i data-lucide="briefcase"></i> Caseload</div>
+                    <div class="nav-item" style="cursor:pointer"><i data-lucide="calendar"></i> Appointments</div>
+                    <div class="nav-item" style="cursor:pointer"><i data-lucide="scale"></i> Court Dates</div>
                 `;
             } else {
                 links = `
-                    <div class="nav-item active"><i data-lucide="inbox"></i> Intake Queue</div>
-                    <div class="nav-item"><i data-lucide="file-check"></i> Document Review</div>
+                    <div class="nav-item active" onclick="loadCases()" style="cursor:pointer"><i data-lucide="inbox"></i> Intake Queue</div>
+                    <div class="nav-item" style="cursor:pointer"><i data-lucide="file-check"></i> Document Review</div>
                 `;
             }
             nav.innerHTML = links;
@@ -682,33 +741,95 @@
 
         async function loadCases() {
             try {
+                // Show dashboard, hide case
+                document.getElementById('dashboard-view-container').style.display = 'block';
+                document.getElementById('case-view-container').style.display = 'none';
+                document.getElementById('right-panel-context').style.display = 'none';
+                document.getElementById('main-app-layout').style.gridTemplateColumns = '260px 1fr';
+
                 const res = await fetch(`${API}/cases`, {
                     headers: {'Authorization': `Bearer ${state.token}`}
                 });
                 if (!res.ok) { console.warn('loadCases: HTTP', res.status); return; }
                 const cases = await res.json();
                 const list = Array.isArray(cases) ? cases : (cases.data || []);
-                if (list.length > 0) {
-                    await selectCase(list[0]);
-                } else if (state.user.role === 'MEMBER') {
-                    const createRes = await fetch(`${API}/cases`, {
-                        method: 'POST',
-                        headers: {'Authorization': `Bearer ${state.token}`, 'Content-Type': 'application/json'},
-                        body: JSON.stringify({ caseType: 'VISA_PROCESSING' })
-                    });
-                    if (createRes.ok) {
-                        const newCase = await createRes.json();
-                        await selectCase(newCase);
-                    }
+                
+                // Build Dashboard Cards
+                const grid = document.getElementById('dashboard-grid');
+                if (state.user.role === 'MEMBER') {
+                    grid.innerHTML = `
+                        <div class="card glass-panel" style="padding: 1.5rem">
+                            <h3 style="margin-bottom: 1rem; color: #818cf8"><i data-lucide="user"></i> Context</h3>
+                            <p><strong>Name:</strong> ${state.user.name}</p>
+                            <p><strong>Nationality:</strong> ${state.user.profile?.nationality || 'N/A'}</p>
+                            <p><strong>Visa Type:</strong> ${state.user.profile?.visaType || 'N/A'}</p>
+                        </div>
+                        <div class="card glass-panel" style="padding: 1.5rem">
+                            <h3 style="margin-bottom: 1rem; color: #818cf8"><i data-lucide="briefcase"></i> Legal Profile</h3>
+                            <p><strong>Status:</strong> ${state.user.legalProfile?.currentVisaStatus || 'N/A'}</p>
+                            <p><strong>Expiry:</strong> ${state.user.legalProfile?.visaExpiry ? new Date(state.user.legalProfile.visaExpiry).toLocaleDateString() : 'N/A'}</p>
+                            <p><strong>Employer:</strong> ${state.user.legalProfile?.currentEmployer || 'N/A'}</p>
+                        </div>
+                        <div class="card glass-panel" style="padding: 1.5rem">
+                            <h3 style="margin-bottom: 1rem; color: #818cf8"><i data-lucide="plane"></i> Travel Summary</h3>
+                            <p><strong>Country of Residence:</strong> ${state.user.profile?.countryOfResidence || 'N/A'}</p>
+                            <p><strong>Port of Entry:</strong> ${state.user.profile?.portOfEntry || 'N/A'}</p>
+                        </div>
+                        <div class="card glass-panel" style="padding: 1.5rem">
+                            <h3 style="margin-bottom: 1rem; color: #818cf8"><i data-lucide="folder"></i> Case Summary</h3>
+                            <p><strong>Active Cases:</strong> ${list.length}</p>
+                            ${list.length > 0 ? `<button class="btn btn-secondary" style="margin-top:1rem" onclick="selectCaseId('${list[0].id}')">View Latest Case</button>` : '<p>No active cases.</p>'}
+                        </div>
+                    `;
+                } else {
+                    grid.innerHTML = `
+                        <div class="card glass-panel" style="padding: 1.5rem">
+                            <h3 style="margin-bottom: 1rem; color: #818cf8"><i data-lucide="briefcase"></i> Caseload</h3>
+                            <p><strong>Active Cases:</strong> ${list.length}</p>
+                        </div>
+                    `;
                 }
+                safeCreateIcons();
+
+                // Store list for selectCaseId
+                window.casesList = list;
             } catch(e) {
                 console.error('loadCases error:', e);
+            }
+        }
+
+        async function selectCaseId(id) {
+            const caseObj = window.casesList?.find(c => c.id === id);
+            if (caseObj) await selectCase(caseObj);
+        }
+
+        async function startNewCase() {
+            // Placeholder for Case Creation Wizard (Phase 5)
+            // For now, we'll auto-create and select a new case to demonstrate the flow
+            try {
+                const createRes = await fetch(`${API}/cases`, {
+                    method: 'POST',
+                    headers: {'Authorization': `Bearer ${state.token}`, 'Content-Type': 'application/json'},
+                    body: JSON.stringify({ caseType: 'VISA_PROCESSING' }) // In Phase 5 this will be selectable
+                });
+                if (createRes.ok) {
+                    const newCase = await createRes.json();
+                    await selectCase(newCase);
+                }
+            } catch (e) {
+                console.error('startNewCase error:', e);
             }
         }
 
         async function selectCase(caseObj) {
             try {
                 state.caseId = caseObj.id;
+
+                // Show Case View, hide dashboard
+                document.getElementById('dashboard-view-container').style.display = 'none';
+                document.getElementById('case-view-container').style.display = 'flex';
+                document.getElementById('right-panel-context').style.display = 'flex';
+                document.getElementById('main-app-layout').style.gridTemplateColumns = '260px 1fr 320px';
 
                 // Header
                 const headerCN = document.getElementById('header-case-number');

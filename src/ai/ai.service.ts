@@ -11,22 +11,27 @@ export interface OrchestratorResponse {
   caseStatus?: string;
   timelineEvent?: { type: string; title: string; description: string };
   suggestedDocuments?: string[];
-  phase?: 'PROFILE' | 'DOCUMENTS' | 'REVIEW' | 'ACTIVE';
+  phase?: OnboardingPhase;
 }
 
-export type OnboardingPhase = 'PROFILE' | 'DOCUMENTS' | 'REVIEW' | 'ACTIVE';
+export type OnboardingPhase = 'MEMBER_PROFILE' | 'LEGAL_PROFILE' | 'DOCUMENTS' | 'REVIEW' | 'ACTIVE';
 
 export interface OnboardingContext {
   phase: OnboardingPhase;
   profile: {
     passportNumber?: string | null;
     nationality?: string | null;
+    countryOfResidence?: string | null;
     visaType?: string | null;
-    visaExpiry?: string | null;
-    employerOrUniversity?: string | null;
     preferredLanguage?: string | null;
     emergencyContact?: string | null;
     portOfEntry?: string | null;
+  };
+  legalProfile?: {
+    currentVisaStatus?: string | null;
+    visaExpiry?: string | null;
+    currentEmployer?: string | null;
+    university?: string | null;
   };
   uploadedDocuments: string[];
   requiredDocuments: string[];
@@ -37,22 +42,33 @@ export interface OnboardingContext {
   messageHistory?: any[];
 }
 
-const REQUIRED_PROFILE_FIELDS = [
+const REQUIRED_MEMBER_FIELDS = [
   'passportNumber',
   'nationality',
+  'countryOfResidence',
   'visaType',
+];
+
+const REQUIRED_LEGAL_FIELDS = [
+  'currentVisaStatus',
   'visaExpiry',
-  'employerOrUniversity',
+  'currentEmployer',
 ];
 
 const REQUIRED_DOCUMENTS = ['PASSPORT', 'VISA'];
 
 function detectPhase(ctx: Partial<OnboardingContext>): OnboardingPhase {
   const profile = ctx.profile || {};
-  const profileComplete = REQUIRED_PROFILE_FIELDS.every(
+  const memberComplete = REQUIRED_MEMBER_FIELDS.every(
     (f) => profile[f as keyof typeof profile],
   );
-  if (!profileComplete) return 'PROFILE';
+  if (!memberComplete) return 'MEMBER_PROFILE';
+
+  const legalProfile = ctx.legalProfile || {};
+  const legalComplete = REQUIRED_LEGAL_FIELDS.every(
+    (f) => legalProfile[f as keyof typeof legalProfile],
+  );
+  if (!legalComplete) return 'LEGAL_PROFILE';
 
   const uploaded = ctx.uploadedDocuments || [];
   const docsComplete = REQUIRED_DOCUMENTS.every((d) => uploaded.includes(d));
@@ -105,8 +121,11 @@ export class AiService {
   }
 
   private buildSystemPrompt(ctx: OnboardingContext): string {
-    const missingProfileFields = REQUIRED_PROFILE_FIELDS.filter(
+    const missingMemberFields = REQUIRED_MEMBER_FIELDS.filter(
       (f) => !ctx.profile?.[f as keyof typeof ctx.profile],
+    );
+    const missingLegalFields = REQUIRED_LEGAL_FIELDS.filter(
+      (f) => !ctx.legalProfile?.[f as keyof typeof ctx.legalProfile],
     );
     const missingDocs = (ctx.requiredDocuments || REQUIRED_DOCUMENTS).filter(
       (d) => !ctx.uploadedDocuments?.includes(d),
@@ -116,22 +135,27 @@ export class AiService {
 
 CURRENT PHASE: ${ctx.phase}
 CASE: ${ctx.caseNumber || 'New'} | TYPE: ${ctx.caseType || 'Not set'} | STATUS: ${ctx.caseStatus || 'New'}
-PROFILE COMPLETION: ${missingProfileFields.length === 0 ? 'Complete' : `Missing: ${missingProfileFields.join(', ')}`}
+MEMBER PROFILE: ${missingMemberFields.length === 0 ? 'Complete' : `Missing: ${missingMemberFields.join(', ')}`}
+LEGAL PROFILE: ${missingLegalFields.length === 0 ? 'Complete' : `Missing: ${missingLegalFields.join(', ')}`}
 DOCUMENTS UPLOADED: ${ctx.uploadedDocuments?.join(', ') || 'None'}
 MISSING DOCUMENTS: ${missingDocs.join(', ') || 'None'}
 
 PHASE RULES (follow strictly):
-- PROFILE phase: Collect missing profile fields one at a time through conversation. For each answer, set nextAction="SAVE_PROFILE_FIELD" and fieldToSave with the field name and value extracted from the user's message.
-- DOCUMENTS phase: Profile is complete. Guide the user to upload specific missing documents. Set nextAction="UPLOAD_DOCUMENT" and suggestedDocuments to the missing doc types.
+- MEMBER_PROFILE phase: Collect missing basic profile fields one at a time. Set nextAction="SAVE_PROFILE_FIELD" and fieldToSave.
+- LEGAL_PROFILE phase: Collect missing legal and immigration fields one at a time. Set nextAction="SAVE_PROFILE_FIELD" and fieldToSave.
+- DOCUMENTS phase: Profiles are complete. Guide the user to upload specific missing documents. Set nextAction="UPLOAD_DOCUMENT" and suggestedDocuments to the missing doc types.
 - REVIEW phase: All data collected. Summarise the case and inform the user their legal team will contact them.
 - ACTIVE phase: Full case orchestration — appointments, court dates, status updates, lawyer communication.
 
 PROFILE FIELDS AND THEIR FRIENDLY NAMES:
 - passportNumber → "Passport number"
 - nationality → "Nationality / country of citizenship"
+- countryOfResidence → "Country of residence"
 - visaType → "Current visa type (e.g. F-1, H-1B, B-2, etc.)"
+- currentVisaStatus → "Current visa status (valid, expired, pending)"
 - visaExpiry → "Visa expiry date (YYYY-MM-DD)"
-- employerOrUniversity → "Current employer or university"
+- currentEmployer → "Current employer"
+- university → "Current university (if applicable)"
 - portOfEntry → "Port of entry (city where you entered the country)"
 - emergencyContact → "Emergency contact (name and phone)"
 - preferredLanguage → "Preferred language for communication"
@@ -256,23 +280,27 @@ ${this.knowledgeBase}`;
   private getStructuredFallback(ctx: OnboardingContext, message: string): OrchestratorResponse {
     const phase = ctx.phase;
 
-    if (phase === 'PROFILE') {
-      const missingFields = REQUIRED_PROFILE_FIELDS.filter(
-        (f) => !ctx.profile?.[f as keyof typeof ctx.profile],
-      );
+    if (phase === 'MEMBER_PROFILE' || phase === 'LEGAL_PROFILE') {
+      const isMember = phase === 'MEMBER_PROFILE';
+      const missingFields = isMember 
+        ? REQUIRED_MEMBER_FIELDS.filter((f) => !ctx.profile?.[f as keyof typeof ctx.profile])
+        : REQUIRED_LEGAL_FIELDS.filter((f) => !ctx.legalProfile?.[f as keyof typeof ctx.legalProfile]);
+      
       const fieldLabels: Record<string, string> = {
         passportNumber: 'your passport number',
         nationality: 'your nationality / country of citizenship',
+        countryOfResidence: 'your country of residence',
         visaType: 'your current visa type (e.g. F-1, H-1B, B-2)',
+        currentVisaStatus: 'your current visa status (valid, expired, etc.)',
         visaExpiry: 'your visa expiry date',
-        employerOrUniversity: 'your current employer or university',
+        currentEmployer: 'your current employer',
       };
       
       if (missingFields.length === 0) {
         return {
-          message: `Your profile is complete.`,
+          message: `Your ${isMember ? 'member' : 'legal'} profile is complete.`,
           nextAction: 'NONE',
-          phase: 'PROFILE'
+          phase: phase
         };
       }
 
@@ -282,7 +310,6 @@ ${this.knowledgeBase}`;
 
       // Try to extract a value from the user's message for the previous field question
       const lowerMsg = message.toLowerCase().trim();
-      // Heuristic: if message is short and informational, treat it as an answer
       const looksLikeAnswer = message.length > 0 && message.length < 120 && !lowerMsg.includes('?');
       
       if (looksLikeAnswer) {
@@ -293,14 +320,14 @@ ${this.knowledgeBase}`;
              message: `Got it. Next, could you please provide ${nextFriendly}? (${remaining - 1} field${remaining - 1 !== 1 ? 's' : ''} remaining)`,
              nextAction: 'SAVE_PROFILE_FIELD',
              fieldToSave: { field: nextField, value: message.trim() },
-             phase: 'PROFILE'
+             phase: phase
            };
         } else {
            return {
-             message: `Thank you. Your profile is now complete.`,
+             message: `Thank you. Your ${isMember ? 'member' : 'legal'} profile is now complete.`,
              nextAction: 'SAVE_PROFILE_FIELD',
              fieldToSave: { field: nextField, value: message.trim() },
-             phase: 'PROFILE'
+             phase: phase
            };
         }
       }
@@ -308,7 +335,7 @@ ${this.knowledgeBase}`;
       return {
         message: `Thank you. Could you please provide ${friendly}? (${remaining} field${remaining !== 1 ? 's' : ''} remaining)`,
         nextAction: 'NONE',
-        phase: 'PROFILE',
+        phase: phase,
         timelineEvent: {
           type: 'PROFILE_UPDATE',
           title: 'Profile Screening',

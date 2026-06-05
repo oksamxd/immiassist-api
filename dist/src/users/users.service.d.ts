@@ -36,31 +36,67 @@ export declare class UsersService {
             updatedAt: Date;
             nationality: string | null;
             passportNumber: string | null;
+            countryOfResidence: string | null;
             visaType: string | null;
-            visaExpiry: Date | null;
-            employerOrUniversity: string | null;
             preferredLanguage: string;
             currentLocation: string | null;
             emergencyContact: string | null;
+            travelHistory: import("@prisma/client/runtime/library").JsonValue | null;
+            userId: string;
+        } | null;
+        legalProfile: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            currentVisaStatus: string | null;
+            visaExpiry: Date | null;
+            immigrationHistory: import("@prisma/client/runtime/library").JsonValue | null;
+            previousNotices: import("@prisma/client/runtime/library").JsonValue | null;
+            previousDenials: import("@prisma/client/runtime/library").JsonValue | null;
+            currentEmployer: string | null;
+            university: string | null;
+            dependents: import("@prisma/client/runtime/library").JsonValue | null;
             userId: string;
         } | null;
     }>;
     updateProfile(userId: string, dto: UpdateProfileDto): Promise<{
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        nationality: string | null;
-        passportNumber: string | null;
-        visaType: string | null;
-        visaExpiry: Date | null;
-        employerOrUniversity: string | null;
-        preferredLanguage: string;
-        currentLocation: string | null;
-        emergencyContact: string | null;
-        userId: string;
+        name: string;
+        email: string;
+        phone: string | null;
+        role: import("@prisma/client").$Enums.UserRole;
+        profile: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            nationality: string | null;
+            passportNumber: string | null;
+            countryOfResidence: string | null;
+            visaType: string | null;
+            preferredLanguage: string;
+            currentLocation: string | null;
+            emergencyContact: string | null;
+            travelHistory: import("@prisma/client/runtime/library").JsonValue | null;
+            userId: string;
+        } | null;
+        legalProfile: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            currentVisaStatus: string | null;
+            visaExpiry: Date | null;
+            immigrationHistory: import("@prisma/client/runtime/library").JsonValue | null;
+            previousNotices: import("@prisma/client/runtime/library").JsonValue | null;
+            previousDenials: import("@prisma/client/runtime/library").JsonValue | null;
+            currentEmployer: string | null;
+            university: string | null;
+            dependents: import("@prisma/client/runtime/library").JsonValue | null;
+            userId: string;
+        } | null;
     }>;
     getOnboardingStatus(userId: string): Promise<{
         profileComplete: boolean;
+        legalProfileComplete: boolean;
         documents: {
             PASSPORT: boolean;
             VISA: boolean;
@@ -71,9 +107,13 @@ export declare class UsersService {
         profile: {
             passportNumber: boolean;
             nationality: boolean;
+            countryOfResidence: boolean;
             visaType: boolean;
+        };
+        legalProfile: {
+            currentVisaStatus: boolean;
             visaExpiry: boolean;
-            employerOrUniversity: boolean;
+            currentEmployer: boolean;
         };
     }>;
 }

@@ -39,17 +39,18 @@ export class SessionsService {
       where: { id: caseId },
       include: {
         detail: true,
-        member: { include: { profile: true } },
+        member: { include: { profile: true, legalProfile: true } },
         documents: { select: { documentType: true } },
         assignedLawyer: { select: { name: true } },
       },
     });
 
     const profile: any = caseData?.member?.profile || {};
+    const legalProfile: any = (caseData?.member as any)?.legalProfile || {};
     const uploadedDocuments = (caseData?.documents || []).map((d: any) => d.documentType);
     const requiredDocuments = this.getRequiredDocs(caseData?.caseType);
 
-    const partialCtx = { profile, uploadedDocuments };
+    const partialCtx = { profile, legalProfile, uploadedDocuments };
     const phase = this.ai.detectPhase(partialCtx);
 
     return {
@@ -58,11 +59,16 @@ export class SessionsService {
         passportNumber:        profile.passportNumber,
         nationality:           profile.nationality,
         visaType:              profile.visaType,
-        visaExpiry:            profile.visaExpiry?.toISOString?.() || profile.visaExpiry,
-        employerOrUniversity:  profile.employerOrUniversity,
+        countryOfResidence:    profile.countryOfResidence,
         preferredLanguage:     profile.preferredLanguage,
         emergencyContact:      profile.emergencyContact,
         portOfEntry:           profile.portOfEntry,
+      },
+      legalProfile: {
+        currentVisaStatus:     legalProfile.currentVisaStatus,
+        visaExpiry:            legalProfile.visaExpiry?.toISOString?.() || legalProfile.visaExpiry,
+        currentEmployer:       legalProfile.currentEmployer,
+        university:            legalProfile.university,
       },
       uploadedDocuments,
       requiredDocuments,
@@ -155,11 +161,22 @@ export class SessionsService {
       orchestrationResult.fieldToSave?.value
     ) {
       const { field, value } = orchestrationResult.fieldToSave;
-      const allowedFields = [
-        'passportNumber', 'nationality', 'visaType', 'visaExpiry',
-        'employerOrUniversity', 'portOfEntry', 'emergencyContact', 'preferredLanguage',
+      const memberFields = [
+        'passportNumber', 'nationality', 'visaType', 'countryOfResidence',
+        'portOfEntry', 'emergencyContact', 'preferredLanguage',
       ];
-      if (allowedFields.includes(field)) {
+      const legalFields = [
+        'currentVisaStatus', 'visaExpiry', 'currentEmployer', 'university'
+      ];
+      
+      if (memberFields.includes(field)) {
+        const updateData: any = { [field]: value };
+        await this.prisma.memberProfile.upsert({
+          where: { userId },
+          update: updateData,
+          create: { ...updateData, userId },
+        });
+      } else if (legalFields.includes(field)) {
         const updateData: any = {};
         if (field === 'visaExpiry') {
           const parsed = new Date(value);
@@ -168,7 +185,7 @@ export class SessionsService {
           updateData[field] = value;
         }
         if (Object.keys(updateData).length > 0) {
-          await this.prisma.memberProfile.upsert({
+          await this.prisma.legalProfile.upsert({
             where: { userId },
             update: updateData,
             create: { ...updateData, userId },

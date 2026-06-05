@@ -7,7 +7,19 @@ export declare class SessionsService {
     private readonly ai;
     private readonly audit;
     constructor(prisma: PrismaService, ai: AiService, audit: AuditService);
+    private getRequiredDocs;
+    private buildOnboardingContext;
     create(userId: string, dto: CreateSessionDto): Promise<{
+        id: string;
+        language: string;
+        createdAt: Date;
+        updatedAt: Date;
+        userId: string;
+        status: import("@prisma/client").$Enums.SessionStatus;
+        aiContext: import("@prisma/client/runtime/library").JsonValue | null;
+        caseId: string;
+        messages: import("@prisma/client/runtime/library").JsonValue | null;
+    } | {
         messages: {
             role: string;
             content: string;
@@ -42,6 +54,8 @@ export declare class SessionsService {
             role: string;
             content: string;
         };
+        phase: import("../ai/ai.service").OnboardingPhase | undefined;
+        nextAction: string | undefined;
         messageCount: number;
     }>;
     close(sessionId: string): Promise<{

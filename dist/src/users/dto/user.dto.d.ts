@@ -12,9 +12,16 @@ export declare class UpdateProfileDto {
     passportNumber?: string;
     nationality?: string;
     visaType?: string;
-    visaExpiry?: string;
-    employerOrUniversity?: string;
-    portOfEntry?: string;
     preferredLanguage?: string;
     emergencyContact?: string;
+    countryOfResidence?: string;
+    travelHistory?: any;
+    currentVisaStatus?: string;
+    visaExpiry?: string;
+    immigrationHistory?: any;
+    previousNotices?: any;
+    previousDenials?: any;
+    currentEmployer?: string;
+    university?: string;
+    dependents?: any;
 }
