@@ -280,15 +280,6 @@ ${this.knowledgeBase}`;
   private getStructuredFallback(ctx: OnboardingContext, message: string): OrchestratorResponse {
     const phase = ctx.phase;
 
-    // If the AI service is not configured (e.g., missing API key), provide a generic welcome without claiming profile completion.
-    if (!this.isConfigured) {
-      return {
-        message: `Welcome to ImmiAssist. Let's begin by gathering your profile information.`,
-        nextAction: 'NONE',
-        phase: phase || 'MEMBER_PROFILE',
-      };
-    }
-
     if (phase === 'MEMBER_PROFILE' || phase === 'LEGAL_PROFILE') {
       const isMember = phase === 'MEMBER_PROFILE';
       const missingFields = isMember 
@@ -306,12 +297,28 @@ ${this.knowledgeBase}`;
       };
       
       if (missingFields.length === 0) {
+        // Detect the correct next phase
+        const nextPhase = detectPhase(ctx);
+        if (nextPhase === 'LEGAL_PROFILE') {
           return {
-            message: `All required ${isMember ? 'member' : 'legal'} profile fields have been collected. Proceeding to the next step.`,
-            nextAction: 'ADVANCE_PHASE',
-            phase: phase,
+            message: `Your basic profile is complete. Let's collect your legal and immigration details now.`,
+            nextAction: 'NONE',
+            phase: 'LEGAL_PROFILE',
+          };
+        } else if (nextPhase === 'DOCUMENTS') {
+          return {
+            message: `Your profiles are complete. Next, we need you to upload some required documents.`,
+            nextAction: 'NONE',
+            phase: 'DOCUMENTS',
+          };
+        } else {
+          return {
+            message: `Profile information collected. Moving to the next step.`,
+            nextAction: 'NONE',
+            phase: nextPhase,
           };
         }
+      }
 
       const nextField = missingFields[0];
       const friendly = fieldLabels[nextField] || nextField;
@@ -332,10 +339,13 @@ ${this.knowledgeBase}`;
               phase: phase,
             };
           } else {
-            // All required fields have been collected after saving this field
+            // Last required field answered — save it and signal phase advance
             return {
-              message: `All required ${isMember ? 'member' : 'legal'} profile fields have been collected. Proceeding to the next step.`,
-              nextAction: 'ADVANCE_PHASE',
+              message: isMember
+                ? `Got it. Your basic profile is now complete — let's move on to your legal and immigration details.`
+                : `Got it. Your legal profile is complete — let's proceed to document uploads.`,
+              nextAction: 'SAVE_PROFILE_FIELD',
+              fieldToSave: { field: nextField, value: message.trim() },
               phase: phase,
             };
           }
