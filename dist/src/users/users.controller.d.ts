@@ -21,7 +21,7 @@ export declare class UsersController {
         };
         token: string;
     }>;
-    getProfile(req: any): Promise<{
+    getProfile(req: any, res: any): Promise<{
         id: string;
         name: string;
         email: string;
@@ -91,7 +91,7 @@ export declare class UsersController {
             userId: string;
         } | null;
     }>;
-    getOnboardingStatus(req: any): Promise<{
+    getOnboardingStatus(req: any, res: any): Promise<{
         profileComplete: boolean;
         legalProfileComplete: boolean;
         documents: {

@@ -412,9 +412,19 @@
         }
 
         function logout() {
+            // Wipe ALL state — prevents onboarding data from leaking into next session
             localStorage.removeItem('token');
-            state = { token: null, user: null, activeRole: 'MEMBER', caseId: null, socket: null };
-            if(window.socket) window.socket.disconnect();
+            state = {
+                token: null,
+                user: null,
+                activeRole: 'MEMBER',
+                caseId: null,
+                sessionId: null,
+                socket: null
+            };
+            window.casesList = null;
+            if (state.socket) state.socket.disconnect();
+            if (window.socket) window.socket.disconnect();
             renderAuth();
         }
 
@@ -426,50 +436,87 @@
                 </div>
                 <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
             `;
+
+            // ── Step 1: Authenticate & load user ─────────────────────────────
+            let profileRes;
             try {
-                const res = await fetch(`${API}/users/profile`, {
-                    headers: {'Authorization': `Bearer ${state.token}`},
+                profileRes = await fetch(`${API}/users/profile`, {
+                    headers: { 'Authorization': `Bearer ${state.token}` },
                     cache: 'no-store'
                 });
-                if (!res.ok) throw new Error('Auth failed');
-                state.user = await res.json();
-
-                if (state.user.role === 'MEMBER') {
-                    const onbRes = await fetch(`${API}/users/onboarding-status`, {
-                        headers: {'Authorization': `Bearer ${state.token}`},
-                        cache: 'no-store'
-                    });
-                    if (onbRes.ok) {
-                        const onb = await onbRes.json();
-                        const profileOk = onb.profileComplete;
-                        const legalProfileOk = onb.legalProfileComplete;
-                        const docsOk = onb.documents && Object.values(onb.documents).some(v => v);
-                        
-                        if (!profileOk) {
-                            await renderOnboarding('MEMBER_PROFILE');
-                            return;
-                        }
-                        if (!legalProfileOk) {
-                            await renderOnboarding('LEGAL_PROFILE');
-                            return;
-                        }
-                        if (!docsOk) {
-                            await renderOnboarding('DOCUMENTS');
-                            return;
-                        }
-                    }
-                }
-
-                renderDashboard();
-            } catch (e) {
-                console.error('initApp error:', e);
+            } catch (networkErr) {
+                console.error('initApp: network error fetching profile', networkErr);
                 document.getElementById('app').innerHTML = `
                     <div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:1.5rem">
-                        <p style="color:#f87171;font-size:0.95rem">Failed to load workspace. Please try again.</p>
+                        <p style="color:#f87171;font-size:0.95rem">Network error. Please check your connection and try again.</p>
                         <button class="btn btn-primary" onclick="logout()">Back to Login</button>
                     </div>
                 `;
+                return;
             }
+
+            if (!profileRes.ok) {
+                // Token invalid or expired — force re-login
+                localStorage.removeItem('token');
+                state.token = null;
+                state.user = null;
+                renderAuth();
+                return;
+            }
+
+            state.user = await profileRes.json();
+
+            // ── Step 2: Onboarding gate (MEMBER only) ────────────────────────
+            if (state.user.role === 'MEMBER') {
+                let onbRes;
+                try {
+                    onbRes = await fetch(`${API}/users/onboarding-status`, {
+                        headers: { 'Authorization': `Bearer ${state.token}` },
+                        cache: 'no-store'
+                    });
+                } catch (networkErr) {
+                    console.error('initApp: network error fetching onboarding status', networkErr);
+                    // Fail-safe: block dashboard, show onboarding from start
+                    await renderOnboarding('MEMBER_PROFILE');
+                    return;
+                }
+
+                if (!onbRes.ok) {
+                    console.warn('initApp: onboarding-status returned', onbRes.status, '— blocking dashboard');
+                    await renderOnboarding('MEMBER_PROFILE');
+                    return;
+                }
+
+                const onb = await onbRes.json();
+                console.log('[initApp] onboarding-status:', JSON.stringify(onb));
+
+                // Explicit field-level checks (not just truthy coercion)
+                const profileOk = onb.profileComplete === true;
+                const legalProfileOk = onb.legalProfileComplete === true;
+                // Require AT LEAST one key document (PASSPORT is mandatory)
+                const docsOk = onb.documents && onb.documents.PASSPORT === true;
+
+                if (!profileOk) {
+                    console.log('[initApp] member profile incomplete → renderOnboarding(MEMBER_PROFILE)');
+                    await renderOnboarding('MEMBER_PROFILE');
+                    return;
+                }
+                if (!legalProfileOk) {
+                    console.log('[initApp] legal profile incomplete → renderOnboarding(LEGAL_PROFILE)');
+                    await renderOnboarding('LEGAL_PROFILE');
+                    return;
+                }
+                if (!docsOk) {
+                    console.log('[initApp] documents incomplete → renderOnboarding(DOCUMENTS)');
+                    await renderOnboarding('DOCUMENTS');
+                    return;
+                }
+
+                console.log('[initApp] all onboarding complete → renderDashboard()');
+            }
+
+            // ── Step 3: Dashboard (only reached after all checks pass) ───────
+            renderDashboard();
         }
 
         function renderDashboard() {

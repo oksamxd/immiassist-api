@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Put, Body, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Get, Put, Body, UseGuards, Req, Res } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto, LoginDto, UpdateProfileDto } from './dto/user.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -19,7 +19,10 @@ export class UsersController {
 
   @UseGuards(JwtAuthGuard)
   @Get('profile')
-  getProfile(@Req() req: any) {
+  async getProfile(@Req() req: any, @Res({ passthrough: true }) res: any) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     return this.usersService.getProfile(req.user.sub);
   }
 
@@ -31,7 +34,10 @@ export class UsersController {
 
   @UseGuards(JwtAuthGuard)
   @Get('onboarding-status')
-  getOnboardingStatus(@Req() req: any) {
+  async getOnboardingStatus(@Req() req: any, @Res({ passthrough: true }) res: any) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     return this.usersService.getOnboardingStatus(req.user.sub);
   }
 }
