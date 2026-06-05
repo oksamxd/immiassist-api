@@ -228,11 +228,16 @@ ${this.knowledgeBase}`;
         }),
       });
 
-      if (!response.ok) {
-        const err = await response.text();
-        this.logger.error(`OpenAI error ${response.status}: ${err}`);
-        return this.getStructuredFallback(ctx, userMessage);
-      }
+        if (!response.ok) {
+          // If OpenAI quota exceeded (429) or other API errors, fallback to local logic
+          if (response.status === 429) {
+            // Do not log noisy quota error, just use structured fallback
+            return this.getStructuredFallback(ctx, userMessage);
+          }
+          const err = await response.text();
+          this.logger.error(`OpenAI error ${response.status}: ${err}`);
+          return this.getStructuredFallback(ctx, userMessage);
+        }
 
       const data = await response.json();
       const text = data?.choices?.[0]?.message?.content || '';

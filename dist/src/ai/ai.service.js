@@ -214,6 +214,9 @@ ${this.knowledgeBase}`;
                 }),
             });
             if (!response.ok) {
+                if (response.status === 429) {
+                    return this.getStructuredFallback(ctx, userMessage);
+                }
                 const err = await response.text();
                 this.logger.error(`OpenAI error ${response.status}: ${err}`);
                 return this.getStructuredFallback(ctx, userMessage);
@@ -278,11 +281,28 @@ ${this.knowledgeBase}`;
                 currentEmployer: 'your current employer',
             };
             if (missingFields.length === 0) {
-                return {
-                    message: `Your ${isMember ? 'member' : 'legal'} profile is complete.`,
-                    nextAction: 'NONE',
-                    phase: phase
-                };
+                const nextPhase = detectPhase(ctx);
+                if (nextPhase === 'LEGAL_PROFILE') {
+                    return {
+                        message: `Your basic profile is complete. Let's collect your legal and immigration details now.`,
+                        nextAction: 'NONE',
+                        phase: 'LEGAL_PROFILE',
+                    };
+                }
+                else if (nextPhase === 'DOCUMENTS') {
+                    return {
+                        message: `Your profiles are complete. Next, we need you to upload some required documents.`,
+                        nextAction: 'NONE',
+                        phase: 'DOCUMENTS',
+                    };
+                }
+                else {
+                    return {
+                        message: `Profile information collected. Moving to the next step.`,
+                        nextAction: 'NONE',
+                        phase: nextPhase,
+                    };
+                }
             }
             const nextField = missingFields[0];
             const friendly = fieldLabels[nextField] || nextField;
@@ -297,20 +317,22 @@ ${this.knowledgeBase}`;
                         message: `Got it. Next, could you please provide ${nextFriendly}? (${remaining - 1} field${remaining - 1 !== 1 ? 's' : ''} remaining)`,
                         nextAction: 'SAVE_PROFILE_FIELD',
                         fieldToSave: { field: nextField, value: message.trim() },
-                        phase: phase
+                        phase: phase,
                     };
                 }
                 else {
                     return {
-                        message: `Thank you. Your ${isMember ? 'member' : 'legal'} profile is now complete.`,
+                        message: isMember
+                            ? `Got it. Your basic profile is now complete — let's move on to your legal and immigration details.`
+                            : `Got it. Your legal profile is complete — let's proceed to document uploads.`,
                         nextAction: 'SAVE_PROFILE_FIELD',
                         fieldToSave: { field: nextField, value: message.trim() },
-                        phase: phase
+                        phase: phase,
                     };
                 }
             }
             return {
-                message: `Thank you. Could you please provide ${friendly}? (${remaining} field${remaining !== 1 ? 's' : ''} remaining)`,
+                message: `Please provide ${friendly} (${remaining} field${remaining !== 1 ? 's' : ''} remaining).`,
                 nextAction: 'NONE',
                 phase: phase,
                 timelineEvent: {

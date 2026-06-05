@@ -160,8 +160,8 @@ let UsersService = class UsersService {
             select: { documentType: true },
         });
         const uploadedTypes = documents.map((d) => d.documentType);
-        const memberProfileComplete = !!(profile?.passportNumber && profile?.nationality && profile?.countryOfResidence);
-        const legalProfileComplete = !!(legalProfile?.currentVisaStatus && legalProfile?.currentEmployer);
+        const memberProfileComplete = !!(profile?.passportNumber && profile?.passportNumber.trim().length > 0 && profile?.nationality && profile?.nationality.trim().length > 0 && profile?.countryOfResidence && profile?.countryOfResidence.trim().length > 0 && profile?.visaType && profile?.visaType.trim().length > 0);
+        const legalProfileComplete = !!(legalProfile?.currentVisaStatus && legalProfile?.currentVisaStatus.trim().length > 0 && legalProfile?.currentEmployer && legalProfile?.currentEmployer.trim().length > 0 && legalProfile?.visaExpiry);
         return {
             profileComplete: memberProfileComplete,
             legalProfileComplete: legalProfileComplete,

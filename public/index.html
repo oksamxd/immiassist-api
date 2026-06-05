@@ -428,20 +428,16 @@
             `;
             try {
                 const res = await fetch(`${API}/users/profile`, {
-                    headers: {'Authorization': `Bearer ${state.token}`}
+                    headers: {'Authorization': `Bearer ${state.token}`},
+                    cache: 'no-store'
                 });
-                if (!res.ok) {
-                    localStorage.removeItem('token');
-                    state.token = null;
-                    renderAuth();
-                    return;
-                }
+                if (!res.ok) throw new Error('Auth failed');
                 state.user = await res.json();
 
-                // Members must complete onboarding before accessing the dashboard
                 if (state.user.role === 'MEMBER') {
                     const onbRes = await fetch(`${API}/users/onboarding-status`, {
-                        headers: {'Authorization': `Bearer ${state.token}`}
+                        headers: {'Authorization': `Bearer ${state.token}`},
+                        cache: 'no-store'
                     });
                     if (onbRes.ok) {
                         const onb = await onbRes.json();
@@ -748,7 +744,8 @@
                 document.getElementById('main-app-layout').style.gridTemplateColumns = '260px 1fr';
 
                 const res = await fetch(`${API}/cases`, {
-                    headers: {'Authorization': `Bearer ${state.token}`}
+                    headers: {'Authorization': `Bearer ${state.token}`},
+                    cache: 'no-store'
                 });
                 if (!res.ok) { console.warn('loadCases: HTTP', res.status); return; }
                 const cases = await res.json();
