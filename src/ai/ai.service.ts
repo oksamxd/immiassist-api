@@ -267,6 +267,15 @@ ${this.knowledgeBase}`;
         visaExpiry: 'your visa expiry date',
         employerOrUniversity: 'your current employer or university',
       };
+      
+      if (missingFields.length === 0) {
+        return {
+          message: `Your profile is complete.`,
+          nextAction: 'NONE',
+          phase: 'PROFILE'
+        };
+      }
+
       const nextField = missingFields[0];
       const friendly = fieldLabels[nextField] || nextField;
       const remaining = missingFields.length;
@@ -275,6 +284,26 @@ ${this.knowledgeBase}`;
       const lowerMsg = message.toLowerCase().trim();
       // Heuristic: if message is short and informational, treat it as an answer
       const looksLikeAnswer = message.length > 0 && message.length < 120 && !lowerMsg.includes('?');
+      
+      if (looksLikeAnswer) {
+        const nextNextField = missingFields[1];
+        if (nextNextField) {
+           const nextFriendly = fieldLabels[nextNextField] || nextNextField;
+           return {
+             message: `Got it. Next, could you please provide ${nextFriendly}? (${remaining - 1} field${remaining - 1 !== 1 ? 's' : ''} remaining)`,
+             nextAction: 'SAVE_PROFILE_FIELD',
+             fieldToSave: { field: nextField, value: message.trim() },
+             phase: 'PROFILE'
+           };
+        } else {
+           return {
+             message: `Thank you. Your profile is now complete.`,
+             nextAction: 'SAVE_PROFILE_FIELD',
+             fieldToSave: { field: nextField, value: message.trim() },
+             phase: 'PROFILE'
+           };
+        }
+      }
       
       return {
         message: `Thank you. Could you please provide ${friendly}? (${remaining} field${remaining !== 1 ? 's' : ''} remaining)`,
