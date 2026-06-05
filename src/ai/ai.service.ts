@@ -280,6 +280,15 @@ ${this.knowledgeBase}`;
   private getStructuredFallback(ctx: OnboardingContext, message: string): OrchestratorResponse {
     const phase = ctx.phase;
 
+    // If the AI service is not configured (e.g., missing API key), provide a generic welcome without claiming profile completion.
+    if (!this.isConfigured) {
+      return {
+        message: `Welcome to ImmiAssist. Let's begin by gathering your profile information.`,
+        nextAction: 'NONE',
+        phase: phase || 'MEMBER_PROFILE',
+      };
+    }
+
     if (phase === 'MEMBER_PROFILE' || phase === 'LEGAL_PROFILE') {
       const isMember = phase === 'MEMBER_PROFILE';
       const missingFields = isMember 
@@ -297,12 +306,12 @@ ${this.knowledgeBase}`;
       };
       
       if (missingFields.length === 0) {
-        return {
-          message: `Your ${isMember ? 'member' : 'legal'} profile is complete.`,
-          nextAction: 'NONE',
-          phase: phase
-        };
-      }
+          return {
+            message: `All required ${isMember ? 'member' : 'legal'} profile fields have been collected. Proceeding to the next step.`,
+            nextAction: 'ADVANCE_PHASE',
+            phase: phase,
+          };
+        }
 
       const nextField = missingFields[0];
       const friendly = fieldLabels[nextField] || nextField;
@@ -314,34 +323,34 @@ ${this.knowledgeBase}`;
       
       if (looksLikeAnswer) {
         const nextNextField = missingFields[1];
-        if (nextNextField) {
-           const nextFriendly = fieldLabels[nextNextField] || nextNextField;
-           return {
-             message: `Got it. Next, could you please provide ${nextFriendly}? (${remaining - 1} field${remaining - 1 !== 1 ? 's' : ''} remaining)`,
-             nextAction: 'SAVE_PROFILE_FIELD',
-             fieldToSave: { field: nextField, value: message.trim() },
-             phase: phase
-           };
-        } else {
-           return {
-             message: `Thank you. Your ${isMember ? 'member' : 'legal'} profile is now complete.`,
-             nextAction: 'SAVE_PROFILE_FIELD',
-             fieldToSave: { field: nextField, value: message.trim() },
-             phase: phase
-           };
-        }
+          if (nextNextField) {
+            const nextFriendly = fieldLabels[nextNextField] || nextNextField;
+            return {
+              message: `Got it. Next, could you please provide ${nextFriendly}? (${remaining - 1} field${remaining - 1 !== 1 ? 's' : ''} remaining)`,
+              nextAction: 'SAVE_PROFILE_FIELD',
+              fieldToSave: { field: nextField, value: message.trim() },
+              phase: phase,
+            };
+          } else {
+            // All required fields have been collected after saving this field
+            return {
+              message: `All required ${isMember ? 'member' : 'legal'} profile fields have been collected. Proceeding to the next step.`,
+              nextAction: 'ADVANCE_PHASE',
+              phase: phase,
+            };
+          }
       }
       
       return {
-        message: `Thank you. Could you please provide ${friendly}? (${remaining} field${remaining !== 1 ? 's' : ''} remaining)`,
-        nextAction: 'NONE',
-        phase: phase,
-        timelineEvent: {
-          type: 'PROFILE_UPDATE',
-          title: 'Profile Screening',
-          description: `Collecting required profile information.`,
-        },
-      };
+          message: `Please provide ${friendly} (${remaining} field${remaining !== 1 ? 's' : ''} remaining).`,
+          nextAction: 'NONE',
+          phase: phase,
+          timelineEvent: {
+            type: 'PROFILE_UPDATE',
+            title: 'Profile Screening',
+            description: `Collecting required profile information.`,
+          },
+        };
     }
 
     if (phase === 'DOCUMENTS') {
