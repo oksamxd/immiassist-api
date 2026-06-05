@@ -582,49 +582,145 @@
                         </div>
                     </aside>
 
-                    <!-- Right: Jana AI chat -->
-                    <main class="onboarding-main">
+                    <!-- Right: Onboarding Forms -->
+                    <main class="onboarding-main" style="overflow-y: auto;">
                         <div class="onb-header">
                             <div>
                                 <h2 style="font-size:1.2rem;font-weight:700">Case Intake — ${steps[stepIdx]?.label || 'Setup'}</h2>
-                                <p style="font-size:0.82rem;color:var(--text-muted);margin-top:0.2rem">Jana AI is guiding you through your case setup</p>
+                                <p style="font-size:0.82rem;color:var(--text-muted);margin-top:0.2rem">Please provide your details below.</p>
                             </div>
                             <div class="badge primary">Step ${stepIdx + 1} of ${steps.length}</div>
                         </div>
 
-                        <div class="chat-container" id="onb-chat"></div>
-
-                        ${ phase === 'DOCUMENTS' ? `
-                        <div style="padding:0.75rem 2rem;border-top:1px solid var(--border);background:rgba(15,23,42,0.6)">
-                            <label style="display:inline-flex;align-items:center;gap:0.6rem;padding:0.6rem 1.25rem;background:rgba(79,70,229,0.15);border:1px solid rgba(79,70,229,0.35);border-radius:8px;cursor:pointer;font-size:0.88rem;color:#a5b4fc;font-weight:500;transition:all 0.2s">
-                                <i data-lucide="upload" style="width:16px"></i>
-                                Upload Document
-                                <input type="file" id="onb-doc-upload" style="display:none" onchange="onboardingUpload(event)" accept=".pdf,.jpg,.jpeg,.png">
-                            </label>
-                            <span style="font-size:0.75rem;color:var(--text-muted);margin-left:1rem">PDF, JPG, PNG accepted</span>
+                        ${ phase === 'MEMBER_PROFILE' ? `
+                        <div style="padding: 2rem;">
+                            <form onsubmit="submitMemberProfile(event)">
+                                <div class="form-group">
+                                    <label>Passport Number</label>
+                                    <input type="text" id="onb-passport" class="form-control" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Nationality</label>
+                                    <input type="text" id="onb-nationality" class="form-control" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Country of Residence</label>
+                                    <input type="text" id="onb-residence" class="form-control" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Visa Type</label>
+                                    <input type="text" id="onb-visa-type" class="form-control" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary" id="btn-member-submit">Save & Continue</button>
+                            </form>
+                        </div>
+                        ` : '' }
+                        
+                        ${ phase === 'LEGAL_PROFILE' ? `
+                        <div style="padding: 2rem;">
+                            <form onsubmit="submitLegalProfile(event)">
+                                <div class="form-group">
+                                    <label>Current Visa Status</label>
+                                    <input type="text" id="onb-visa-status" class="form-control" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Visa Expiry Date</label>
+                                    <input type="date" id="onb-visa-expiry" class="form-control" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Current Employer</label>
+                                    <input type="text" id="onb-employer" class="form-control" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>University (if applicable)</label>
+                                    <input type="text" id="onb-university" class="form-control">
+                                </div>
+                                <button type="submit" class="btn btn-primary" id="btn-legal-submit">Save & Continue</button>
+                            </form>
                         </div>
                         ` : '' }
 
-                        <div class="input-area">
-                            <div class="chat-input-wrapper">
-                                <input type="text" id="onb-input" class="" placeholder="Type your response…" onkeypress="if(event.key==='Enter') onbSend()" style="flex:1;background:transparent;border:none;color:white;padding:0 1rem;font-size:0.95rem;font-family:inherit">
-                                <button class="btn-icon primary" onclick="onbSend()">
-                                    <i data-lucide="send" style="width:18px"></i>
-                                </button>
+                        ${ phase === 'DOCUMENTS' ? `
+                        <div style="padding: 2rem;">
+                            <p style="margin-bottom: 1rem;">Please upload your required documents to proceed.</p>
+                            <div class="form-group" style="padding: 1rem; border: 1px solid var(--border); border-radius: 8px;">
+                                <label style="font-weight: 600;">Upload Passport</label>
+                                <input type="file" class="form-control" style="margin-top: 0.5rem;" accept=".pdf,.jpg,.jpeg,.png" onchange="uploadOnbDoc('PASSPORT', event)">
+                                <div id="status-PASSPORT" style="color:var(--primary); font-size: 0.85rem; margin-top: 0.5rem; font-weight: 500;"></div>
                             </div>
+                            <div class="form-group" style="padding: 1rem; border: 1px solid var(--border); border-radius: 8px;">
+                                <label style="font-weight: 600;">Upload Visa (Optional)</label>
+                                <input type="file" class="form-control" style="margin-top: 0.5rem;" accept=".pdf,.jpg,.jpeg,.png" onchange="uploadOnbDoc('VISA', event)">
+                                <div id="status-VISA" style="color:var(--primary); font-size: 0.85rem; margin-top: 0.5rem; font-weight: 500;"></div>
+                            </div>
+                            <button class="btn btn-primary" style="margin-top: 1rem;" onclick="initApp()">Finish & Go to Dashboard</button>
                         </div>
+                        ` : '' }
                     </main>
                 </div>
             `;
             safeCreateIcons();
-
-            // Start session for onboarding
-            await ensureOnboardingSession();
+            if (phase === 'DOCUMENTS') {
+                ensureCaseCreated();
+            }
         }
 
-        async function ensureOnboardingSession() {
+        async function submitMemberProfile(e) {
+            e.preventDefault();
+            document.getElementById('btn-member-submit').disabled = true;
             try {
-                // Get or create case
+                const payload = {
+                    passportNumber: document.getElementById('onb-passport').value,
+                    nationality: document.getElementById('onb-nationality').value,
+                    countryOfResidence: document.getElementById('onb-residence').value,
+                    visaType: document.getElementById('onb-visa-type').value
+                };
+                const res = await fetch(`${API}/users/profile`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${state.token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    initApp(); // re-evaluates onboarding status
+                } else {
+                    alert('Failed to save profile');
+                    document.getElementById('btn-member-submit').disabled = false;
+                }
+            } catch (err) {
+                alert('Network error');
+                document.getElementById('btn-member-submit').disabled = false;
+            }
+        }
+
+        async function submitLegalProfile(e) {
+            e.preventDefault();
+            document.getElementById('btn-legal-submit').disabled = true;
+            try {
+                const payload = {
+                    currentVisaStatus: document.getElementById('onb-visa-status').value,
+                    visaExpiry: document.getElementById('onb-visa-expiry').value,
+                    currentEmployer: document.getElementById('onb-employer').value,
+                    university: document.getElementById('onb-university').value || undefined
+                };
+                const res = await fetch(`${API}/users/profile`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${state.token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    initApp(); // re-evaluates onboarding status
+                } else {
+                    alert('Failed to save legal profile');
+                    document.getElementById('btn-legal-submit').disabled = false;
+                }
+            } catch (err) {
+                alert('Network error');
+                document.getElementById('btn-legal-submit').disabled = false;
+            }
+        }
+
+        async function ensureCaseCreated() {
+            try {
                 let caseObj;
                 const casesRes = await fetch(`${API}/cases`, { headers: {'Authorization': `Bearer ${state.token}`} });
                 if (casesRes.ok) {
@@ -639,123 +735,44 @@
                     });
                     if (cr.ok) caseObj = await cr.json();
                 }
-                if (!caseObj) return;
-
-                state.caseId = caseObj.id;
-
-                // Start session
-                const sessRes = await fetch(`${API}/sessions`, {
-                    method: 'POST',
-                    headers: {'Authorization': `Bearer ${state.token}`, 'Content-Type': 'application/json'},
-                    body: JSON.stringify({ caseId: caseObj.id, sessionType: 'INTAKE' })
-                });
-                if (!sessRes.ok) return;
-                const session = await sessRes.json();
-                state.sessionId = session.id;
-
-                // Render existing messages
-                const msgs = Array.isArray(session.messages) ? session.messages : [];
-                msgs.forEach(m => {
-                    if (m.role !== 'system') onbAppendMessage(m.role, m.content);
-                });
-            } catch(e) { console.error('ensureOnboardingSession', e); }
+                if (caseObj) state.caseId = caseObj.id;
+            } catch (e) { console.error('ensureCaseCreated', e); }
         }
 
-        async function onbSend() {
-            const input = document.getElementById('onb-input');
-            if (!input) return;
-            const text = (input.value || '').trim();
-            if (!text || !state.sessionId) return;
-            input.value = '';
-            onbAppendMessage('user', JSON.stringify({ message: text }));
-
-            try {
-                const res = await fetch(`${API}/sessions/${state.sessionId}/message`, {
-                    method: 'POST',
-                    headers: {'Authorization': `Bearer ${state.token}`, 'Content-Type': 'application/json'},
-                    body: JSON.stringify({ message: text })
-                });
-                if (!res.ok) return;
-                const data = await res.json();
-                onbAppendMessage('assistant', data.aiResponse.content);
-
-                // If phase advanced to ACTIVE — go to full dashboard
-                if (data.phase === 'ACTIVE') {
-                    setTimeout(() => initApp(), 2000);
-                } else if (data.phase && data.phase !== getCurrentOnbPhase()) {
-                    setTimeout(() => renderOnboarding(data.phase), 1500);
-                }
-            } catch(e) { console.error('onbSend', e); }
-        }
-
-        function getCurrentOnbPhase() {
-            const header = document.querySelector('.onb-header h2');
-            if (!header) return null;
-            const t = header.innerText;
-            if (t.includes('Member Profile')) return 'MEMBER_PROFILE';
-            if (t.includes('Legal Profile')) return 'LEGAL_PROFILE';
-            if (t.includes('Documents')) return 'DOCUMENTS';
-            if (t.includes('Review')) return 'REVIEW';
-            return 'ACTIVE';
-        }
-
-        async function onboardingUpload(event) {
+        async function uploadOnbDoc(type, event) {
             const file = event.target.files[0];
-            if (!file || !state.caseId) return;
-            onbAppendMessage('user', JSON.stringify({ message: `Uploading: ${file.name}` }));
+            if (!file) return;
+            if (!state.caseId) await ensureCaseCreated();
+            if (!state.caseId) {
+                alert('Could not create case for document upload');
+                return;
+            }
+            
+            const statusDiv = document.getElementById(`status-${type}`);
+            statusDiv.innerText = 'Uploading...';
+            statusDiv.style.color = 'var(--primary)';
+            
             const formData = new FormData();
             formData.append('file', file);
             try {
-                const res = await fetch(`${API}/documents/${state.caseId}?type=PASSPORT`, {
+                const res = await fetch(`${API}/documents/${state.caseId}?type=${type}`, {
                     method: 'POST',
                     headers: {'Authorization': `Bearer ${state.token}`},
                     body: formData
                 });
                 if (res.ok) {
-                    await onbSendSilent(`I have uploaded ${file.name}`);
+                    statusDiv.innerText = 'Upload successful!';
                 } else {
-                    onbAppendMessage('assistant', JSON.stringify({ message: 'Upload failed. Please try again.' }));
+                    statusDiv.innerText = 'Upload failed.';
+                    statusDiv.style.color = '#f87171';
                 }
-            } catch { onbAppendMessage('assistant', JSON.stringify({ message: 'Upload failed. Please try again.' })); }
+            } catch { 
+                statusDiv.innerText = 'Upload failed.';
+                statusDiv.style.color = '#f87171';
+            }
         }
 
-        async function onbSendSilent(text) {
-            if (!state.sessionId) return;
-            try {
-                const res = await fetch(`${API}/sessions/${state.sessionId}/message`, {
-                    method: 'POST',
-                    headers: {'Authorization': `Bearer ${state.token}`, 'Content-Type': 'application/json'},
-                    body: JSON.stringify({ message: text })
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    onbAppendMessage('assistant', data.aiResponse.content);
-                    if (data.phase === 'ACTIVE') setTimeout(() => initApp(), 2000);
-                    else if (data.phase && data.phase !== getCurrentOnbPhase()) setTimeout(() => renderOnboarding(data.phase), 1500);
-                }
-            } catch(e) { console.error('onbSendSilent', e); }
-        }
 
-        function onbAppendMessage(role, rawContent) {
-            const container = document.getElementById('onb-chat');
-            if (!container) return;
-            let text = rawContent;
-            let options = [];
-            try {
-                const parsed = JSON.parse(rawContent);
-                text = parsed.message || rawContent;
-                options = parsed.options || [];
-            } catch { /* raw string */ }
-
-            text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
-
-            const optsHtml = options.length > 0
-                ? `<div class="message-options">${options.map(o => `<button class="msg-opt-btn" onclick="document.getElementById('onb-input').value='${o.replace(/'/g,"'").replace(/[^\x20-\x7E]/g,'')}';onbSend()">${o}</button>`).join('')}</div>`
-                : '';
-
-            container.innerHTML += `<div class="message ${role === 'assistant' ? 'ai' : 'user'}">${text}${optsHtml}</div>`;
-            container.scrollTop = container.scrollHeight;
-        }
 
         function setupSidebar() {
             const nav = document.getElementById('sidebar-nav');
