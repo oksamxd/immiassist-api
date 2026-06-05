@@ -14,7 +14,32 @@ async function main() {
 
   const memberUser = await prisma.user.upsert({
     where: { email: 'member@immiassist.io' },
-    update: {},
+    update: {
+      profile: {
+        upsert: {
+          create: { preferredLanguage: 'en' },
+          update: {
+            nationality: null,
+            passportNumber: null,
+            countryOfResidence: null,
+            visaType: null,
+            currentLocation: null,
+            emergencyContact: null,
+          }
+        }
+      },
+      legalProfile: {
+        upsert: {
+          create: {},
+          update: {
+            currentVisaStatus: null,
+            currentEmployer: null,
+            visaExpiry: null,
+            university: null,
+          }
+        }
+      }
+    },
     create: {
       name: 'Arjun Sharma',
       email: 'member@immiassist.io',
@@ -24,19 +49,11 @@ async function main() {
       language: 'en',
       profile: {
         create: {
-          nationality: 'Indian',
-          passportNumber: 'P1234567',
-          countryOfResidence: 'United States',
-          visaType: 'F-1',
           preferredLanguage: 'en',
-          currentLocation: 'Cambridge, MA',
         },
       },
       legalProfile: {
-        create: {
-          currentVisaStatus: 'F-1 OPT',
-          currentEmployer: 'MIT',
-        },
+        create: {},
       },
     },
   });
