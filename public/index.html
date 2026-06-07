@@ -755,7 +755,7 @@
             const formData = new FormData();
             formData.append('file', file);
             try {
-                const res = await fetch(`${API}/documents/${state.caseId}?type=${type}`, {
+                const res = await fetch(`${API}/documents/onboarding?type=${type}`, {
                     method: 'POST',
                     headers: {'Authorization': `Bearer ${state.token}`},
                     body: formData
@@ -1049,7 +1049,7 @@
             formData.append('file', file);
             
             try {
-                const res = await fetch(`${API}/documents/${state.caseId}?type=OTHER`, {
+                const res = await fetch(`${API}/documents/upload?caseId=${state.caseId}&type=OTHER`, {
                     method: 'POST',
                     headers: {'Authorization': `Bearer ${state.token}`},
                     body: formData
