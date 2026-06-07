@@ -915,7 +915,21 @@
                         chatContainer.innerHTML = '';
                         if (session.messages && Array.isArray(session.messages)) {
                             session.messages.forEach(m => {
-                                if (m.role !== 'system') appendMessage(m.role, m.content, m.options);
+                                if (m.role !== 'system') {
+                                    let content = m.content;
+                                    let options = m.options;
+                                    if (m.role === 'assistant') {
+                                        try {
+                                            const p = JSON.parse(m.content);
+                                            content = p.message || m.content;
+                                            options = p.options || options;
+                                            if (p.suggestedDocuments && p.suggestedDocuments.length > 0) {
+                                                state.expectedDocType = p.suggestedDocuments[0];
+                                            }
+                                        } catch(e) {}
+                                    }
+                                    appendMessage(m.role, content, options);
+                                }
                             });
                         }
                     }
@@ -1024,6 +1038,10 @@
                 aiMsg = parsed.message;
                 options = parsed.options || [];
                 
+                if (parsed.suggestedDocuments && parsed.suggestedDocuments.length > 0) {
+                    state.expectedDocType = parsed.suggestedDocuments[0];
+                }
+                
                 // If AI decided to change state or create event based on intent
                 if (parsed.timelineEvent) {
                     renderTimeline([{ 
@@ -1048,8 +1066,10 @@
             const formData = new FormData();
             formData.append('file', file);
             
+            const docType = state.expectedDocType || 'OTHER';
+
             try {
-                const res = await fetch(`${API}/documents/upload?caseId=${state.caseId}&type=OTHER`, {
+                const res = await fetch(`${API}/documents/upload?caseId=${state.caseId}&type=${docType}`, {
                     method: 'POST',
                     headers: {'Authorization': `Bearer ${state.token}`},
                     body: formData
@@ -1059,6 +1079,11 @@
                     appendMessage('assistant', `✅ Successfully received ${file.name}. It has been added to your case file.`);
                     // Reload timeline
                     loadCases(); 
+                    
+                    // Auto-reply to AI
+                    setTimeout(() => {
+                        sendOption('I have uploaded it');
+                    }, 500);
                 }
             } catch(err) {
                 appendMessage('assistant', '❌ Upload failed. Please try again.');
