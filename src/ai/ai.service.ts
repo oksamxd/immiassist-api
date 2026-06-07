@@ -380,6 +380,27 @@ ${this.knowledgeBase}`;
         EAD: 'EAD Card',
       };
       const nextDoc = missingDocs[0];
+
+      const lowerMsg = message.toLowerCase().trim();
+
+      if (lowerMsg.includes('help')) {
+        return {
+          message: `If you are having trouble finding or uploading your **${docLabels[nextDoc] || nextDoc}**, don't worry. Your legal team will assist you with this later. For now, please try to upload any other available documents, or contact support.`,
+          nextAction: 'NONE',
+          phase: 'DOCUMENTS',
+          options: ['I have uploaded it', 'Contact support'],
+        };
+      }
+
+      if (lowerMsg.includes('uploaded')) {
+        return {
+          message: `I don't see the **${docLabels[nextDoc] || nextDoc}** in our system yet. Please ensure the file was uploaded successfully using the upload area. If you're having trouble, let me know.`,
+          nextAction: 'UPLOAD_DOCUMENT',
+          phase: 'DOCUMENTS',
+          options: ['I need help with this document'],
+        };
+      }
+
       return {
         message: `Your profile is complete. Please upload your **${docLabels[nextDoc] || nextDoc}** to proceed. Use the upload button below.`,
         nextAction: 'UPLOAD_DOCUMENT',
