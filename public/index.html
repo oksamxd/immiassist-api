@@ -98,11 +98,12 @@
                     </button>
                     <p class="auth-footer-note">
                         <a href="#" onclick="showPortalSelector()">← Back to Portal Selection</a>
-                    </p>
-                </div>
-
-            </div>
-        </div>
+                    <!-- Marked for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        /* Hide layout initially */
+        #app-view { display: none; }
+    </style>
     </template>
 
     <!-- App Layout (3-Panel) -->
@@ -165,6 +166,10 @@
                 </div>
 
                 <div class="input-area">
+                    <div id="typing-indicator" style="display: none; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.5rem; margin-left: 1rem; align-items: center; gap: 0.5rem;">
+                        <span>Jana is typing</span>
+                        <div class="typing-dots"><span>.</span><span>.</span><span>.</span></div>
+                    </div>
                     <div class="chat-input-wrapper">
                         <button class="btn-icon" onclick="document.getElementById('file-upload').click()" title="Upload Document">
                             <i data-lucide="paperclip" style="width: 20px"></i>
@@ -1067,27 +1072,51 @@
             return 'check-circle';
         }
 
-        function appendMessage(role, text, options = []) {
-            const container = document.getElementById('chat-messages');
-            let optsHtml = '';
-            
-            if (options && options.length > 0) {
-                optsHtml = `<div class="message-options">
-                    ${options.map(o => `<button class="msg-opt-btn" onclick="sendOption('${o}')">${o}</button>`).join('')}
-                </div>`;
+        function appendMessage(role, content, options = []) {
+            try {
+                // Convert markdown to HTML if it's from assistant and marked is available
+                let htmlContent = content;
+                if (role === 'assistant' && typeof marked !== 'undefined') {
+                    htmlContent = marked.parse(content);
+                }
+
+                const msgDiv = document.createElement('div');
+                msgDiv.className = `message ${role === 'assistant' ? 'ai' : 'user'}`;
+                
+                // Add Markdown wrapper class if it's the assistant
+                if (role === 'assistant') {
+                    msgDiv.classList.add('markdown-body');
+                }
+                
+                msgDiv.innerHTML = htmlContent;
+
+                if (options && options.length > 0) {
+                    const optDiv = document.createElement('div');
+                    optDiv.className = 'message-options';
+                    options.forEach(opt => {
+                        const btn = document.createElement('button');
+                        btn.className = 'msg-opt-btn';
+                        btn.innerText = opt;
+                        btn.onclick = () => {
+                            const input = document.getElementById('chat-input');
+                            if (input) {
+                                input.value = opt;
+                                sendMessage();
+                            }
+                        };
+                        optDiv.appendChild(btn);
+                    });
+                    msgDiv.appendChild(optDiv);
+                }
+
+                const chatContainer = document.getElementById('chat-messages');
+                if (chatContainer) {
+                    chatContainer.appendChild(msgDiv);
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                }
+            } catch(e) {
+                console.error('appendMessage error:', e);
             }
-
-            // Simple markdown parser for bold and lists
-            let formattedText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                                    .replace(/\n/g, '<br>');
-
-            container.innerHTML += `
-                <div class="message ${role === 'assistant' ? 'ai' : 'user'}">
-                    ${formattedText}
-                    ${optsHtml}
-                </div>
-            `;
-            container.scrollTop = container.scrollHeight;
         }
 
         function handleKeyPress(e) {
@@ -1099,6 +1128,46 @@
             sendMessage();
         }
 
+        async function refreshContextPanel() {
+            try {
+                // Fetch latest profile to update context panel if member
+                if (state.user.role === 'MEMBER') {
+                    const profileRes = await fetch(`${API}/users/profile`, {
+                        headers: { 'Authorization': `Bearer ${state.token}` }
+                    });
+                    if (profileRes.ok) {
+                        state.user = await profileRes.json();
+                        // Re-render context panel
+                        const ctxPanel = document.getElementById('right-panel-context');
+                        if (ctxPanel) {
+                            ctxPanel.innerHTML = `
+                                <div class="section-title"><i data-lucide="user"></i> Applicant Context</div>
+                                <div class="glass" style="padding: 1.25rem;">
+                                    <p style="margin-bottom:0.5rem"><strong>Name:</strong> ${state.user.name}</p>
+                                    <p style="margin-bottom:0.5rem"><strong>Nationality:</strong> ${state.user.profile?.nationality || 'N/A'}</p>
+                                    <p style="margin-bottom:0.5rem"><strong>Current Visa:</strong> ${state.user.legalProfile?.currentVisaStatus || 'N/A'}</p>
+                                    <p><strong>Employer:</strong> ${state.user.legalProfile?.currentEmployer || 'N/A'}</p>
+                                </div>
+                                
+                                <div class="section-title" style="margin-top:1rem"><i data-lucide="clock"></i> Case Timeline</div>
+                                <div class="timeline" id="timeline-container">
+                                </div>
+                            `;
+                            safeCreateIcons();
+                            // Re-fetch timeline
+                            const timeRes = await fetch(`${API}/timeline/${state.caseId}`, {
+                                headers: {'Authorization': `Bearer ${state.token}`}
+                            });
+                            if (timeRes.ok) {
+                                const events = await timeRes.json();
+                                renderTimeline(events);
+                            }
+                        }
+                    }
+                }
+            } catch(e) { console.error('Failed to refresh context', e); }
+        }
+
         async function sendMessage() {
             const input = document.getElementById('chat-input');
             const text = input.value.trim();
@@ -1107,50 +1176,68 @@
             input.value = '';
             appendMessage(state.user.role === 'MEMBER' ? 'user' : 'assistant', text);
 
+            const typingInd = document.getElementById('typing-indicator');
+            if (typingInd) typingInd.style.display = 'flex';
+
             let endpoint = `${API}/sessions/${state.sessionId}/message`;
             if (state.user.role !== 'MEMBER') {
                 endpoint = `${API}/sessions/case/${state.caseId}/legal-reply`;
             }
 
-            const res = await fetch(endpoint, {
-                method: 'POST',
-                headers: {'Authorization': `Bearer ${state.token}`, 'Content-Type': 'application/json'},
-                body: JSON.stringify({ message: text })
-            });
-            
-            const data = await res.json();
-            
-            if (state.user.role !== 'MEMBER') {
-                // For legal reply, it just posts, no AI response to parse
-                return;
-            }
-            
-            // Parse structured JSON response from AI orchestrator
-            let aiMsg = data.aiResponse.content;
-            let options = [];
-            
             try {
-                const parsed = JSON.parse(aiMsg);
-                aiMsg = parsed.message;
-                options = parsed.options || [];
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {'Authorization': `Bearer ${state.token}`, 'Content-Type': 'application/json'},
+                    body: JSON.stringify({ message: text })
+                });
                 
-                if (parsed.suggestedDocuments && parsed.suggestedDocuments.length > 0) {
-                    state.expectedDocType = parsed.suggestedDocuments[0];
+                const data = await res.json();
+                
+                if (state.user.role !== 'MEMBER') {
+                    if (typingInd) typingInd.style.display = 'none';
+                    return;
                 }
                 
-                // If AI decided to change state or create event based on intent
-                if (parsed.timelineEvent) {
-                    renderTimeline([{ 
-                        ...parsed.timelineEvent, 
-                        createdAt: new Date().toISOString(),
-                        eventType: parsed.timelineEvent.type 
-                    }]);
+                // Parse structured JSON response from AI orchestrator
+                let aiMsg = data.aiResponse.content;
+                let options = [];
+                let phaseAdvanced = false;
+                
+                try {
+                    const parsed = JSON.parse(aiMsg);
+                    aiMsg = parsed.message;
+                    options = parsed.options || [];
+                    
+                    if (parsed.suggestedDocuments && parsed.suggestedDocuments.length > 0) {
+                        state.expectedDocType = parsed.suggestedDocuments[0];
+                    }
+                    
+                    // If AI decided to change state or create event based on intent
+                    if (parsed.timelineEvent) {
+                        renderTimeline([{ 
+                            ...parsed.timelineEvent, 
+                            createdAt: new Date().toISOString(),
+                            eventType: parsed.timelineEvent.type 
+                        }]);
+                    }
+                    
+                    if (parsed.nextAction === 'SAVE_PROFILE_FIELD' || parsed.nextAction === 'ADVANCE_PHASE') {
+                        phaseAdvanced = true;
+                    }
+                } catch(e) {
+                    // fallback if not JSON
                 }
-            } catch(e) {
-                // fallback if not JSON
-            }
 
-            appendMessage('assistant', aiMsg, options);
+                if (typingInd) typingInd.style.display = 'none';
+                appendMessage('assistant', aiMsg, options);
+                
+                if (phaseAdvanced) {
+                    await refreshContextPanel();
+                }
+            } catch (e) {
+                if (typingInd) typingInd.style.display = 'none';
+                console.error('sendMessage error', e);
+            }
         }
 
         async function uploadDocument(e) {
