@@ -43,6 +43,12 @@ let CasesController = class CasesController {
     update(id, dto, req) {
         return this.casesService.update(id, dto, req.user.userId);
     }
+    startTenMinuteMode(id, req) {
+        return this.casesService.startTenMinuteMode(id, req.user.userId);
+    }
+    triggerAirportLive(id, body, req) {
+        return this.casesService.triggerAirportLive(id, req.user.userId, body.issueType, body.contextString);
+    }
 };
 exports.CasesController = CasesController;
 __decorate([
@@ -85,6 +91,23 @@ __decorate([
     __metadata("design:paramtypes", [String, Object, Object]),
     __metadata("design:returntype", void 0)
 ], CasesController.prototype, "update", null);
+__decorate([
+    (0, common_1.Post)(':id/start-ten-minute-mode'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], CasesController.prototype, "startTenMinuteMode", null);
+__decorate([
+    (0, common_1.Post)(':id/airport-live'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object, Object]),
+    __metadata("design:returntype", void 0)
+], CasesController.prototype, "triggerAirportLive", null);
 exports.CasesController = CasesController = __decorate([
     (0, common_1.Controller)('cases'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

@@ -83,6 +83,7 @@ let AiService = AiService_1 = class AiService {
     logger = new common_1.Logger(AiService_1.name);
     apiKey;
     knowledgeBase = '';
+    prompts;
     constructor(configService) {
         this.configService = configService;
         this.apiKey =
@@ -110,6 +111,21 @@ let AiService = AiService_1 = class AiService {
                 }
             }
             this.knowledgeBase = kbString;
+            try {
+                const promptsDir = path.join(kbDir, 'immi_prompts');
+                this.prompts = {
+                    system: fs.readFileSync(path.join(promptsDir, 'system/system_prompt.txt'), 'utf8'),
+                    intake: fs.readFileSync(path.join(promptsDir, 'intake/intake_prompt.txt'), 'utf8'),
+                    travelPrep: fs.readFileSync(path.join(promptsDir, 'travel_prep/travel_prep_prompt.txt'), 'utf8'),
+                    tenMinute: fs.readFileSync(path.join(promptsDir, 'ten_min_mode/ten_minute_prompt.txt'), 'utf8'),
+                    airportLive: fs.readFileSync(path.join(promptsDir, 'airport_live/airport_live_prompt.txt'), 'utf8'),
+                    noticeAnalysis: fs.readFileSync(path.join(promptsDir, 'notice_depart/notice_analysis_prompt.txt'), 'utf8'),
+                    risk: fs.readFileSync(path.join(promptsDir, 'risk/risk_prompt.txt'), 'utf8'),
+                };
+            }
+            catch (e) {
+                this.logger.warn('Could not load specialized prompts (immi_prompts): ' + e.message);
+            }
         }
         catch (e) {
             this.logger.error('Failed to load knowledge base', e);
@@ -283,19 +299,74 @@ ${this.knowledgeBase}`;
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.apiKey}` },
                 body: JSON.stringify({
-                    model: 'gpt-4o-mini',
+                    model: 'gpt-3.5-turbo',
                     messages: [
                         { role: 'system', content: 'You are a legal case summariser. Be concise and professional. Two sentences max.' },
-                        { role: 'user', content: `Summarise this immigration case: ${JSON.stringify(caseData)}` },
+                        { role: 'user', content: `Summarise this case: ${JSON.stringify(caseData)}` }
                     ],
-                    max_tokens: 120,
+                    temperature: 0.3,
                 }),
             });
             const data = await response.json();
             return data?.choices?.[0]?.message?.content || 'Summary unavailable.';
         }
-        catch {
+        catch (e) {
             return 'Summary unavailable.';
+        }
+    }
+    async generateTenMinutePlan(ctx) {
+        if (!this.isConfigured || !this.prompts?.tenMinute)
+            return null;
+        let prompt = this.prompts.tenMinute
+            .replace('{{visa_type}}', ctx.profile?.visaType || 'F1')
+            .replace('{{language}}', ctx.profile?.preferredLanguage || 'English');
+        return this.callLlmJson(prompt, this.prompts.system);
+    }
+    async evaluateAirportRisk(ctx, issueType, contextString) {
+        if (!this.isConfigured || !this.prompts?.risk)
+            return { risk_level: 'LOW' };
+        const prompt = `Input:\n- issue_type: ${issueType}\n- context: ${contextString}\n\n${this.prompts.risk}`;
+        return this.callLlmJson(prompt, this.prompts.system);
+    }
+    async callLlmJson(userPrompt, systemPrompt) {
+        try {
+            if (this.isGemini) {
+                const ai = new genai_1.GoogleGenAI({ apiKey: this.apiKey });
+                const response = await ai.models.generateContent({
+                    model: 'gemini-2.5-flash',
+                    contents: userPrompt,
+                    config: {
+                        systemInstruction: systemPrompt,
+                        responseMimeType: 'application/json',
+                        temperature: 0.3,
+                    }
+                });
+                return JSON.parse(response.text || '{}');
+            }
+            else {
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${this.apiKey}`,
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-4o-mini',
+                        response_format: { type: 'json_object' },
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: userPrompt }
+                        ],
+                        temperature: 0.3,
+                    }),
+                });
+                const data = await response.json();
+                return JSON.parse(data?.choices?.[0]?.message?.content || '{}');
+            }
+        }
+        catch (e) {
+            this.logger.error('callLlmJson error', e);
+            return null;
         }
     }
     detectPhase(ctx) {

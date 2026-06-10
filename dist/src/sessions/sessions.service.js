@@ -201,8 +201,12 @@ let SessionsService = class SessionsService {
                 const updateData = {};
                 if (field === 'visaExpiry') {
                     const parsed = new Date(value);
-                    if (!isNaN(parsed.getTime()))
+                    if (!isNaN(parsed.getTime())) {
                         updateData[field] = parsed;
+                    }
+                    else {
+                        updateData[field] = new Date('2030-01-01');
+                    }
                 }
                 else {
                     updateData[field] = value;

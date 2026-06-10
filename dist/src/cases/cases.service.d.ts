@@ -1,6 +1,7 @@
 import { PrismaService } from '../prisma.service';
 import { WorkflowService } from '../workflow/workflow.service';
 import { AuditService } from '../audit/audit.service';
+import { AiService } from '../ai/ai.service';
 export interface CreateCaseDto {
     caseType: string;
     summary?: string;
@@ -20,7 +21,8 @@ export declare class CasesService {
     private readonly prisma;
     private readonly workflow;
     private readonly audit;
-    constructor(prisma: PrismaService, workflow: WorkflowService, audit: AuditService);
+    private readonly ai;
+    constructor(prisma: PrismaService, workflow: WorkflowService, audit: AuditService, ai: AiService);
     private generateCaseNumber;
     create(userId: string, dto: CreateCaseDto): Promise<{
         detail: {
@@ -60,6 +62,14 @@ export declare class CasesService {
         summary: string | null;
         aiContext: import("@prisma/client/runtime/library").JsonValue | null;
         closedAt: Date | null;
+    }>;
+    startTenMinuteMode(caseId: string, userId: string): Promise<{
+        success: boolean;
+        plan: any;
+    }>;
+    triggerAirportLive(caseId: string, userId: string, issueType: string, contextString: string): Promise<{
+        success: boolean;
+        risk: any;
     }>;
     findAllByUser(userId: string): Promise<({
         appointments: {
@@ -386,8 +396,8 @@ export declare class CasesService {
             metadata: import("@prisma/client/runtime/library").JsonValue | null;
             title: string;
             caseId: string | null;
-            type: string;
             message: string;
+            type: string;
             channel: import("@prisma/client").$Enums.DeliveryChannel;
             sentAt: Date | null;
             readAt: Date | null;

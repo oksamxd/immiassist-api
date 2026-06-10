@@ -363,8 +363,8 @@ export declare class CasesController {
             metadata: import("@prisma/client/runtime/library").JsonValue | null;
             title: string;
             caseId: string | null;
-            type: string;
             message: string;
+            type: string;
             channel: import("@prisma/client").$Enums.DeliveryChannel;
             sentAt: Date | null;
             readAt: Date | null;
@@ -571,5 +571,13 @@ export declare class CasesController {
         summary: string | null;
         aiContext: import("@prisma/client/runtime/library").JsonValue | null;
         closedAt: Date | null;
+    }>;
+    startTenMinuteMode(id: string, req: any): Promise<{
+        success: boolean;
+        plan: any;
+    }>;
+    triggerAirportLive(id: string, body: any, req: any): Promise<{
+        success: boolean;
+        risk: any;
     }>;
 }

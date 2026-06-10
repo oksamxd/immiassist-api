@@ -86,7 +86,7 @@ export class CasesService {
     const caseRecord = await this.prisma.case.findUnique({ where: { id: caseId }, include: { member: { include: { profile: true } } } });
     if (!caseRecord) throw new NotFoundException('Case not found');
 
-    const ctx = { profile: caseRecord.member?.profile };
+    const ctx: any = { profile: caseRecord.member?.profile };
     const plan = await this.ai.generateTenMinutePlan(ctx);
 
     await this.prisma.caseEvent.create({
@@ -108,7 +108,7 @@ export class CasesService {
     const caseRecord = await this.prisma.case.findUnique({ where: { id: caseId }, include: { member: { include: { profile: true } } } });
     if (!caseRecord) throw new NotFoundException('Case not found');
 
-    const ctx = { profile: caseRecord.member?.profile };
+    const ctx: any = { profile: caseRecord.member?.profile };
     const risk = await this.ai.evaluateAirportRisk(ctx, issueType, contextString);
 
     await this.prisma.caseEvent.create({

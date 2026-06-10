@@ -14,14 +14,17 @@ const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma.service");
 const workflow_service_1 = require("../workflow/workflow.service");
 const audit_service_1 = require("../audit/audit.service");
+const ai_service_1 = require("../ai/ai.service");
 let CasesService = class CasesService {
     prisma;
     workflow;
     audit;
-    constructor(prisma, workflow, audit) {
+    ai;
+    constructor(prisma, workflow, audit, ai) {
         this.prisma = prisma;
         this.workflow = workflow;
         this.audit = audit;
+        this.ai = ai;
     }
     generateCaseNumber() {
         const timestamp = Date.now().toString(36).toUpperCase();
@@ -68,6 +71,57 @@ let CasesService = class CasesService {
             entityId: caseRecord.id,
         });
         return caseRecord;
+    }
+    async startTenMinuteMode(caseId, userId) {
+        const caseRecord = await this.prisma.case.findUnique({ where: { id: caseId }, include: { member: { include: { profile: true } } } });
+        if (!caseRecord)
+            throw new common_1.NotFoundException('Case not found');
+        const ctx = { profile: caseRecord.member?.profile };
+        const plan = await this.ai.generateTenMinutePlan(ctx);
+        await this.prisma.caseEvent.create({
+            data: {
+                caseId,
+                eventType: 'TEN_MINUTE_PREP_STARTED',
+                title: '10-Minute Prep Started',
+                description: 'User initiated the 10-Minute Arrival Coach.',
+                actorType: 'USER',
+                actorId: userId,
+                metadata: { plan },
+            },
+        });
+        return { success: true, plan };
+    }
+    async triggerAirportLive(caseId, userId, issueType, contextString) {
+        const caseRecord = await this.prisma.case.findUnique({ where: { id: caseId }, include: { member: { include: { profile: true } } } });
+        if (!caseRecord)
+            throw new common_1.NotFoundException('Case not found');
+        const ctx = { profile: caseRecord.member?.profile };
+        const risk = await this.ai.evaluateAirportRisk(ctx, issueType, contextString);
+        await this.prisma.caseEvent.create({
+            data: {
+                caseId,
+                eventType: 'AIRPORT_LIVE_TRIGGERED',
+                title: 'Airport Live Mode Activated',
+                description: `Emergency mode activated. Risk Level: ${risk.risk_level}`,
+                actorType: 'USER',
+                actorId: userId,
+                metadata: { issueType, risk },
+            },
+        });
+        if (risk.risk_level === 'HIGH' || risk.risk_level === 'CRITICAL') {
+            await this.prisma.case.update({ where: { id: caseId }, data: { priority: 'URGENT' } });
+            await this.prisma.caseEvent.create({
+                data: {
+                    caseId,
+                    eventType: 'RISK_LEVEL_ESCALATED',
+                    title: 'Case Escalated to URGENT',
+                    description: 'Airport Live mode detected high risk.',
+                    actorType: 'SYSTEM',
+                    metadata: { risk },
+                },
+            });
+        }
+        return { success: true, risk };
     }
     async findAllByUser(userId) {
         return this.prisma.case.findMany({
@@ -181,6 +235,7 @@ exports.CasesService = CasesService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         workflow_service_1.WorkflowService,
-        audit_service_1.AuditService])
+        audit_service_1.AuditService,
+        ai_service_1.AiService])
 ], CasesService);
 //# sourceMappingURL=cases.service.js.map

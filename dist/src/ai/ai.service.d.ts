@@ -49,6 +49,7 @@ export declare class AiService {
     private readonly logger;
     private apiKey;
     private knowledgeBase;
+    private prompts;
     constructor(configService: ConfigService);
     private loadKnowledgeBase;
     private get isGemini();
@@ -56,6 +57,9 @@ export declare class AiService {
     private buildSystemPrompt;
     orchestrate(ctx: OnboardingContext, userMessage: string): Promise<OrchestratorResponse>;
     summarizeCase(caseData: any): Promise<string>;
+    generateTenMinutePlan(ctx: OnboardingContext): Promise<any>;
+    evaluateAirportRisk(ctx: OnboardingContext, issueType: string, contextString: string): Promise<any>;
+    private callLlmJson;
     detectPhase(ctx: Partial<OnboardingContext>): OnboardingPhase;
     private getStructuredFallback;
 }
