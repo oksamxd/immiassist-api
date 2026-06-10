@@ -30,22 +30,22 @@ async function main() {
     update: {
       profile: {
         upsert: {
-          create: { preferredLanguage: 'en', passportNumber: 'A1234567', nationality: 'India', countryOfResidence: 'USA', visaType: 'F-1' },
+          create: { preferredLanguage: 'en', passportNumber: null, nationality: null, countryOfResidence: null, visaType: null },
           update: {
-            nationality: 'India',
-            passportNumber: 'A1234567',
-            countryOfResidence: 'USA',
-            visaType: 'F-1',
+            nationality: null,
+            passportNumber: null,
+            countryOfResidence: null,
+            visaType: null,
           }
         }
       },
       legalProfile: {
         upsert: {
-          create: { currentVisaStatus: 'VALID', currentEmployer: 'TechCorp', visaExpiry: new Date('2027-01-01') },
+          create: { currentVisaStatus: null, currentEmployer: null, visaExpiry: null },
           update: {
-            currentVisaStatus: 'VALID',
-            currentEmployer: 'TechCorp',
-            visaExpiry: new Date('2027-01-01'),
+            currentVisaStatus: null,
+            currentEmployer: null,
+            visaExpiry: null,
           }
         }
       }
@@ -60,18 +60,10 @@ async function main() {
       profile: {
         create: {
           preferredLanguage: 'en',
-          passportNumber: 'A1234567',
-          nationality: 'India',
-          countryOfResidence: 'USA',
-          visaType: 'F-1',
         },
       },
       legalProfile: {
-        create: {
-          currentVisaStatus: 'VALID',
-          currentEmployer: 'TechCorp',
-          visaExpiry: new Date('2027-01-01'),
-        },
+        create: {},
       },
     },
   });

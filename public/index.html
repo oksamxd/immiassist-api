@@ -467,52 +467,26 @@
             state.user = await profileRes.json();
 
             // ── Step 2: Onboarding gate (MEMBER only) ────────────────────────
+            // REMOVED: We want the Chatbot to handle onboarding experience, not the HTML wizard.
             if (state.user.role === 'MEMBER') {
-                let onbRes;
+                // Ensure cases exist
                 try {
-                    onbRes = await fetch(`${API}/users/onboarding-status`, {
-                        headers: { 'Authorization': `Bearer ${state.token}` },
-                        cache: 'no-store'
-                    });
-                } catch (networkErr) {
-                    console.error('initApp: network error fetching onboarding status', networkErr);
-                    // Fail-safe: block dashboard, show onboarding from start
-                    await renderOnboarding('MEMBER_PROFILE');
-                    return;
-                }
-
-                if (!onbRes.ok) {
-                    console.warn('initApp: onboarding-status returned', onbRes.status, '— blocking dashboard');
-                    await renderOnboarding('MEMBER_PROFILE');
-                    return;
-                }
-
-                const onb = await onbRes.json();
-                console.log('[initApp] onboarding-status:', JSON.stringify(onb));
-
-                // Explicit field-level checks (not just truthy coercion)
-                const profileOk = onb.profileComplete === true;
-                const legalProfileOk = onb.legalProfileComplete === true;
-                // Require AT LEAST one key document (PASSPORT is mandatory)
-                const docsOk = onb.documents && onb.documents.PASSPORT === true;
-
-                if (!profileOk) {
-                    console.log('[initApp] member profile incomplete → renderOnboarding(MEMBER_PROFILE)');
-                    await renderOnboarding('MEMBER_PROFILE');
-                    return;
-                }
-                if (!legalProfileOk) {
-                    console.log('[initApp] legal profile incomplete → renderOnboarding(LEGAL_PROFILE)');
-                    await renderOnboarding('LEGAL_PROFILE');
-                    return;
-                }
-                if (!docsOk) {
-                    console.log('[initApp] documents incomplete → renderOnboarding(DOCUMENTS)');
-                    await renderOnboarding('DOCUMENTS');
-                    return;
-                }
-
-                console.log('[initApp] all onboarding complete → renderDashboard()');
+                    let caseObj;
+                    const casesRes = await fetch(`${API}/cases`, { headers: {'Authorization': `Bearer ${state.token}`} });
+                    if (casesRes.ok) {
+                        const list = await casesRes.json();
+                        caseObj = Array.isArray(list) ? list[0] : null;
+                    }
+                    if (!caseObj) {
+                        const cr = await fetch(`${API}/cases`, {
+                            method: 'POST',
+                            headers: {'Authorization': `Bearer ${state.token}`, 'Content-Type': 'application/json'},
+                            body: JSON.stringify({ caseType: 'VISA_PROCESSING' })
+                        });
+                        if (cr.ok) caseObj = await cr.json();
+                    }
+                    if (caseObj) state.caseId = caseObj.id;
+                } catch (e) { console.error('ensureCaseCreated', e); }
             }
 
             // ── Resume Active Session Logic ──────────────────────────────────
