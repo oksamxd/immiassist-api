@@ -35,4 +35,14 @@ export class CasesController {
   update(@Param('id') id: string, @Body() dto: any, @Request() req: any) {
     return this.casesService.update(id, dto, req.user.userId);
   }
+
+  @Post(':id/start-ten-minute-mode')
+  startTenMinuteMode(@Param('id') id: string, @Request() req: any) {
+    return this.casesService.startTenMinuteMode(id, req.user.userId);
+  }
+
+  @Post(':id/airport-live')
+  triggerAirportLive(@Param('id') id: string, @Body() body: any, @Request() req: any) {
+    return this.casesService.triggerAirportLive(id, req.user.userId, body.issueType, body.contextString);
+  }
 }

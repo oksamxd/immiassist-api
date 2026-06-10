@@ -140,9 +140,14 @@
                 <div id="dashboard-view-container" style="display:none; padding: 2rem; overflow-y:auto; height:100%;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem;">
                         <h2 style="font-size: 1.5rem; font-weight: 700;">Dashboard</h2>
-                        <button class="btn btn-primary" onclick="startNewCase()">
-                            <i data-lucide="plus" style="width:16px;"></i> New Case
-                        </button>
+                        <div style="display:flex; gap:1rem;">
+                            <button class="btn btn-primary" onclick="startNewCase()">
+                                <i data-lucide="plus" style="width:16px;"></i> New Case
+                            </button>
+                            <button class="btn btn-secondary" onclick="startTenMinutePrep()" id="btn-ten-min" style="display:none; background-color:#818cf8; color:white;">
+                                <i data-lucide="plane-landing" style="width:16px;"></i> 10-Minute Arrival Prep
+                            </button>
+                        </div>
                     </div>
                     <div class="dashboard-grid" id="dashboard-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
                         <!-- Cards injected here -->
@@ -868,6 +873,7 @@
                             ${courtDatesHtml}
                         </div>
                     `;
+                    document.getElementById('btn-ten-min').style.display = 'inline-flex';
                 } else {
                     let pendingDocsHtml = '<p>No pending documents.</p>';
                     try {
@@ -955,10 +961,63 @@
                 });
                 if (createRes.ok) {
                     const newCase = await createRes.json();
+                    alert('New Case Created! Opening case context...');
                     await selectCase(newCase);
+                    loadCases(); // reload dashboard list in background
+                } else {
+                    const err = await createRes.text();
+                    alert('Failed to create case: ' + err);
                 }
             } catch (e) {
                 console.error('startNewCase error:', e);
+                alert('Network error while creating new case');
+            }
+        }
+
+        async function startTenMinutePrep() {
+            if (!window.casesList || window.casesList.length === 0) {
+                alert('Please create a case first.');
+                return;
+            }
+            const activeCase = window.casesList[0];
+            try {
+                document.getElementById('dashboard-view-container').style.display = 'none';
+                document.getElementById('case-view-container').style.display = 'flex';
+                document.getElementById('chat-messages').innerHTML = '<div class="message ai" style="background:var(--primary); color:white; padding:1.5rem; text-align:center;"><h3>Starting 10-Minute Prep...</h3></div>';
+
+                const res = await fetch(`${API}/cases/${activeCase.id}/start-ten-minute-mode`, {
+                    method: 'POST',
+                    headers: {'Authorization': `Bearer ${state.token}`}
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById('chat-messages').innerHTML = '';
+                    const plan = data.plan;
+                    if (plan && plan.steps) {
+                        plan.steps.forEach((step, idx) => {
+                            setTimeout(() => {
+                                let content = '';
+                                if (step.type === 'calm') content = `🌟 **Guidance:**\n\n${step.text}`;
+                                else if (step.type === 'documents') content = `📁 **Documents to Keep Ready:**\n\n${step.text}`;
+                                else if (step.type === 'questions') {
+                                    content = `❓ **Likely Questions:**\n\n`;
+                                    step.questions.forEach(q => { content += `- Q: ${q.q}\n  *Hint: ${q.hint}*\n`; });
+                                }
+                                else if (step.type === 'dos_donts') {
+                                    content = `✅ **Do's:**\n${step.dos.map(d=>'- '+d).join('\n')}\n\n❌ **Don'ts:**\n${step.donts.map(d=>'- '+d).join('\n')}`;
+                                }
+                                else content = `💪 **Final Note:**\n\n${step.text}`;
+                                
+                                appendMessage('assistant', content);
+                            }, idx * 2500); // Sequence it out
+                        });
+                    }
+                } else {
+                    alert('Failed to start prep');
+                }
+            } catch(e) {
+                alert('Network error');
             }
         }
 
