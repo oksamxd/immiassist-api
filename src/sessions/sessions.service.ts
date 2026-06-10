@@ -22,6 +22,9 @@ const REQUIRED_DOCUMENTS: Record<string, string[]> = {
   DEFAULT:            ['PASSPORT', 'VISA'],
 };
 
+const COURT_DATE_KEYWORDS = ['court', 'hearing', 'court date', 'next hearing', 'court hearing', 'immigration court'];
+const FAQ_KEYWORDS = ['what is', 'how do i', 'can i', 'faq', 'help me understand', 'explain', 'difference between'];
+
 @Injectable()
 export class SessionsService {
   constructor(
@@ -42,6 +45,17 @@ export class SessionsService {
         member: { include: { profile: true, legalProfile: true } },
         documents: { select: { documentType: true } },
         assignedLawyer: { select: { name: true } },
+        courtDates: {
+          where: { status: 'SCHEDULED', date: { gte: new Date() } },
+          orderBy: { date: 'asc' },
+          take: 3,
+        },
+        appointments: {
+          where: { status: { in: ['SCHEDULED', 'CONFIRMED'] }, scheduledAt: { gte: new Date() } },
+          orderBy: { scheduledAt: 'asc' },
+          take: 3,
+          include: { lawyer: { include: { user: { select: { name: true } } } } },
+        },
       },
     });
 
@@ -56,31 +70,43 @@ export class SessionsService {
     return {
       phase,
       profile: {
-        passportNumber:        profile.passportNumber,
-        nationality:           profile.nationality,
-        visaType:              profile.visaType,
-        countryOfResidence:    profile.countryOfResidence,
-        preferredLanguage:     profile.preferredLanguage,
-        emergencyContact:      profile.emergencyContact,
-        portOfEntry:           profile.portOfEntry,
+        passportNumber:     profile.passportNumber,
+        nationality:        profile.nationality,
+        visaType:           profile.visaType,
+        countryOfResidence: profile.countryOfResidence,
+        preferredLanguage:  profile.preferredLanguage,
+        emergencyContact:   profile.emergencyContact,
+        portOfEntry:        profile.portOfEntry,
       },
       legalProfile: {
-        currentVisaStatus:     legalProfile.currentVisaStatus,
-        visaExpiry:            legalProfile.visaExpiry?.toISOString?.() || legalProfile.visaExpiry,
-        currentEmployer:       legalProfile.currentEmployer,
-        university:            legalProfile.university,
+        currentVisaStatus: legalProfile.currentVisaStatus,
+        visaExpiry:        legalProfile.visaExpiry?.toISOString?.() || legalProfile.visaExpiry,
+        currentEmployer:   legalProfile.currentEmployer,
+        university:        legalProfile.university,
       },
       uploadedDocuments,
       requiredDocuments,
-      caseType:    caseData?.caseType,
-      caseStatus:  caseData?.status,
-      caseNumber:  caseData?.caseNumber,
-      lawyer:      caseData?.assignedLawyer ? { name: caseData.assignedLawyer.name } : undefined,
-    };
+      caseType:   caseData?.caseType,
+      caseStatus: caseData?.status,
+      caseNumber: caseData?.caseNumber,
+      lawyer:     caseData?.assignedLawyer ? { name: caseData.assignedLawyer.name } : undefined,
+      // Inject real court date + appointment data into context
+      courtDates: (caseData?.courtDates || []).map((cd: any) => ({
+        date: cd.date.toISOString(),
+        location: cd.location,
+        status: cd.status,
+      })),
+      upcomingAppointments: (caseData?.appointments || []).map((a: any) => ({
+        scheduledAt: a.scheduledAt.toISOString(),
+        type: a.appointmentType,
+        lawyer: a.lawyer?.user?.name || 'Your lawyer',
+        meetingLink: a.meetingLink,
+      })),
+    } as any;
   }
 
   async create(userId: string, dto: CreateSessionDto) {
-    // Check if there's already an active session for this case
+    // Resume existing active session for this case if one exists
     const existing = await this.prisma.guidanceSession.findFirst({
       where: { caseId: dto.caseId, userId, status: 'ACTIVE' },
       orderBy: { createdAt: 'desc' },
@@ -133,19 +159,42 @@ export class SessionsService {
 
     const existingMessages = (session.messages as any[]) || [];
 
-    // Build full onboarding context
+    // Build full onboarding context (includes court dates + appointments)
     const ctx = await this.buildOnboardingContext(session.caseId);
     ctx.messageHistory = existingMessages;
 
-    // Add user message
+    // Inject court date information if user is asking about hearings
+    const lowerMsg = message.toLowerCase();
+    const isCourtQuery = COURT_DATE_KEYWORDS.some(kw => lowerMsg.includes(kw));
+    const isFaqQuery = FAQ_KEYWORDS.some(kw => lowerMsg.includes(kw));
+
+    // Augment the user message with real data context if asking about court dates
+    let augmentedMessage = message;
+    if (isCourtQuery && (ctx as any).courtDates?.length > 0) {
+      const courtDates = (ctx as any).courtDates;
+      const courtInfo = courtDates.map((cd: any) =>
+        `Court hearing on ${new Date(cd.date).toLocaleDateString()} at ${cd.location || 'TBD'} (${cd.status})`
+      ).join('; ');
+      augmentedMessage = `${message}\n\n[SYSTEM CONTEXT - REAL DATA: The member's upcoming court dates are: ${courtInfo}]`;
+    } else if (isCourtQuery) {
+      augmentedMessage = `${message}\n\n[SYSTEM CONTEXT: No upcoming court dates are scheduled at this time.]`;
+    }
+
+    if ((ctx as any).upcomingAppointments?.length > 0 && (lowerMsg.includes('appointment') || lowerMsg.includes('consultation') || lowerMsg.includes('meeting'))) {
+      const appts = (ctx as any).upcomingAppointments;
+      const apptInfo = appts.map((a: any) =>
+        `${a.type} with ${a.lawyer} on ${new Date(a.scheduledAt).toLocaleDateString()}${a.meetingLink ? ' (link: ' + a.meetingLink + ')' : ''}`
+      ).join('; ');
+      augmentedMessage = `${augmentedMessage}\n\n[SYSTEM CONTEXT - REAL DATA: Upcoming appointments: ${apptInfo}]`;
+    }
+
     existingMessages.push({
       role: 'user',
       content: message,
       timestamp: new Date().toISOString(),
     });
 
-    // Call Jana AI
-    const orchestrationResult = await this.ai.orchestrate(ctx, message);
+    const orchestrationResult = await this.ai.orchestrate(ctx, augmentedMessage);
     const aiResponseJson = JSON.stringify(orchestrationResult);
 
     existingMessages.push({
@@ -154,33 +203,27 @@ export class SessionsService {
       timestamp: new Date().toISOString(),
     });
 
-    // Handle SAVE_PROFILE_FIELD action — auto-save profile data
+    // Handle SAVE_PROFILE_FIELD — auto-save profile data
     if (
       orchestrationResult.nextAction === 'SAVE_PROFILE_FIELD' &&
       orchestrationResult.fieldToSave?.field &&
       orchestrationResult.fieldToSave?.value
     ) {
       const { field, value } = orchestrationResult.fieldToSave;
-      const memberFields = [
-        'passportNumber', 'nationality', 'visaType', 'countryOfResidence',
-        'portOfEntry', 'emergencyContact', 'preferredLanguage',
-      ];
-      const legalFields = [
-        'currentVisaStatus', 'visaExpiry', 'currentEmployer', 'university'
-      ];
-      
+      const memberFields = ['passportNumber', 'nationality', 'visaType', 'countryOfResidence', 'portOfEntry', 'emergencyContact', 'preferredLanguage'];
+      const legalFields = ['currentVisaStatus', 'visaExpiry', 'currentEmployer', 'university'];
+
       if (memberFields.includes(field)) {
-        const updateData: any = { [field]: value };
         await this.prisma.memberProfile.upsert({
           where: { userId },
-          update: updateData,
-          create: { ...updateData, userId },
+          update: { [field]: value },
+          create: { userId, [field]: value },
         });
       } else if (legalFields.includes(field)) {
         const updateData: any = {};
         if (field === 'visaExpiry') {
           const parsed = new Date(value);
-          updateData[field] = isNaN(parsed.getTime()) ? undefined : parsed;
+          if (!isNaN(parsed.getTime())) updateData[field] = parsed;
         } else {
           updateData[field] = value;
         }
@@ -188,20 +231,20 @@ export class SessionsService {
           await this.prisma.legalProfile.upsert({
             where: { userId },
             update: updateData,
-            create: { ...updateData, userId },
+            create: { userId, ...updateData },
           });
         }
       }
     }
 
-    // Handle ADVANCE_PHASE — update case status if needed
+    // Handle ADVANCE_PHASE — update case status
     if (orchestrationResult.nextAction === 'ADVANCE_PHASE' && orchestrationResult.caseStatus) {
       try {
         await this.prisma.case.update({
           where: { id: session.caseId },
           data: { status: orchestrationResult.caseStatus as any },
         });
-      } catch { /* ignore if invalid status */ }
+      } catch { /* ignore invalid status */ }
     }
 
     await this.prisma.guidanceSession.update({
@@ -209,7 +252,7 @@ export class SessionsService {
       data: { messages: existingMessages },
     });
 
-    // Create timeline event if Jana provided one
+    // Log AI event to case timeline
     if (orchestrationResult.timelineEvent) {
       await this.prisma.caseEvent.create({
         data: {
@@ -232,6 +275,72 @@ export class SessionsService {
     };
   }
 
+  /**
+   * Legal team sends a message directly into a case's active guidance session.
+   * The message appears as role 'legal' so the member can see it in chat.
+   */
+  async sendLegalMessage(caseId: string, actorId: string, message: string) {
+    const session = await this.prisma.guidanceSession.findFirst({
+      where: { caseId, status: 'ACTIVE' },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    if (!session) {
+      throw new NotFoundException('No active guidance session found for this case');
+    }
+
+    const existingMessages = (session.messages as any[]) || [];
+    const legalMessage = {
+      role: 'legal',
+      content: message,
+      timestamp: new Date().toISOString(),
+      actorId,
+    };
+    existingMessages.push(legalMessage);
+
+    await this.prisma.guidanceSession.update({
+      where: { id: session.id },
+      data: { messages: existingMessages },
+    });
+
+    // Create a case event to log this
+    await this.prisma.caseEvent.create({
+      data: {
+        caseId,
+        eventType: 'CASE_NOTE_ADDED',
+        title: 'Legal Team Message',
+        description: message,
+        actorType: 'USER',
+        actorId,
+        metadata: { type: 'legal_reply', sessionId: session.id },
+      },
+    });
+
+    // Notify the case member
+    const caseRecord = await this.prisma.case.findUnique({ where: { id: caseId } });
+    if (caseRecord) {
+      await this.prisma.notification.create({
+        data: {
+          userId: caseRecord.userId,
+          caseId,
+          type: 'LEGAL_TEAM_MESSAGE',
+          title: '💬 Message from Your Legal Team',
+          message,
+        },
+      });
+    }
+
+    await this.audit.log({
+      actorId,
+      action: 'LEGAL_MESSAGE_SENT',
+      entityType: 'GuidanceSession',
+      entityId: session.id,
+      payload: { caseId, message },
+    });
+
+    return { success: true, message: legalMessage };
+  }
+
   async close(sessionId: string) {
     return this.prisma.guidanceSession.update({
       where: { id: sessionId },
@@ -243,6 +352,14 @@ export class SessionsService {
     return this.prisma.guidanceSession.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
+      include: { case: { select: { caseNumber: true, caseType: true, status: true } } },
+    });
+  }
+
+  async findByCaseForLegalTeam(caseId: string) {
+    return this.prisma.guidanceSession.findMany({
+      where: { caseId },
+      orderBy: { updatedAt: 'desc' },
       include: { case: { select: { caseNumber: true, caseType: true, status: true } } },
     });
   }

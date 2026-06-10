@@ -40,4 +40,10 @@ export class UsersController {
     res.setHeader('Expires', '0');
     return this.usersService.getOnboardingStatus(req.user.sub);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('active-session')
+  getActiveSession(@Req() req: any) {
+    return this.usersService.getActiveSession(req.user.sub);
+  }
 }

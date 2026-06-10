@@ -37,6 +37,12 @@ let SessionsController = class SessionsController {
     close(id) {
         return this.sessionsService.close(id);
     }
+    findByCaseForLegalTeam(caseId) {
+        return this.sessionsService.findByCaseForLegalTeam(caseId);
+    }
+    sendLegalReply(caseId, body, req) {
+        return this.sessionsService.sendLegalMessage(caseId, req.user.sub, body.message);
+    }
 };
 exports.SessionsController = SessionsController;
 __decorate([
@@ -77,6 +83,22 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], SessionsController.prototype, "close", null);
+__decorate([
+    (0, common_1.Get)('case/:caseId/all'),
+    __param(0, (0, common_1.Param)('caseId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], SessionsController.prototype, "findByCaseForLegalTeam", null);
+__decorate([
+    (0, common_1.Post)('case/:caseId/legal-reply'),
+    __param(0, (0, common_1.Param)('caseId')),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object, Object]),
+    __metadata("design:returntype", void 0)
+], SessionsController.prototype, "sendLegalReply", null);
 exports.SessionsController = SessionsController = __decorate([
     (0, common_1.Controller)('sessions'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

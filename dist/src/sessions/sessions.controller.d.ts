@@ -80,4 +80,32 @@ export declare class SessionsController {
         caseId: string;
         messages: import("@prisma/client/runtime/library").JsonValue | null;
     }>;
+    findByCaseForLegalTeam(caseId: string): Promise<({
+        case: {
+            caseNumber: string;
+            caseType: import("@prisma/client").$Enums.CaseType;
+            status: import("@prisma/client").$Enums.CaseStatus;
+        };
+    } & {
+        id: string;
+        language: string;
+        createdAt: Date;
+        updatedAt: Date;
+        userId: string;
+        status: import("@prisma/client").$Enums.SessionStatus;
+        aiContext: import("@prisma/client/runtime/library").JsonValue | null;
+        caseId: string;
+        messages: import("@prisma/client/runtime/library").JsonValue | null;
+    })[]>;
+    sendLegalReply(caseId: string, body: {
+        message: string;
+    }, req: any): Promise<{
+        success: boolean;
+        message: {
+            role: string;
+            content: string;
+            timestamp: string;
+            actorId: string;
+        };
+    }>;
 }

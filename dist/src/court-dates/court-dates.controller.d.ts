@@ -93,6 +93,40 @@ export declare class CourtDatesController {
         lawyerId: string;
         date: Date;
     })[]>;
+    findUpcoming(req: any): Promise<({
+        lawyer: {
+            user: {
+                email: string;
+                name: string;
+            };
+        } & {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            specialization: string[];
+            location: string | null;
+            languages: string[];
+            barNumber: string | null;
+            availabilityStatus: boolean;
+            rating: number;
+            casesHandled: number;
+            userId: string;
+        };
+        case: {
+            caseNumber: string;
+            caseType: import("@prisma/client").$Enums.CaseType;
+        };
+    } & {
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        location: string | null;
+        status: import("@prisma/client").$Enums.CourtDateStatus;
+        notes: string | null;
+        caseId: string;
+        lawyerId: string;
+        date: Date;
+    })[]>;
     updateStatus(id: string, body: any, req: any): Promise<{
         id: string;
         createdAt: Date;

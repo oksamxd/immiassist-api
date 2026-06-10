@@ -9,7 +9,7 @@ export class CourtDatesController {
 
   @Post()
   create(@Request() req: any, @Body() dto: any) {
-    return this.courtDatesService.create(dto.caseId, dto.lawyerId, dto, req.user.userId);
+    return this.courtDatesService.create(dto.caseId, dto.lawyerId, dto, req.user.userId || req.user.sub);
   }
 
   @Get('case/:caseId')
@@ -19,11 +19,19 @@ export class CourtDatesController {
 
   @Get('lawyer')
   findByLawyer(@Request() req: any) {
-    return this.courtDatesService.findByLawyer(req.user.userId);
+    return this.courtDatesService.findByLawyer(req.user.userId || req.user.sub);
+  }
+
+  /**
+   * Member: view all upcoming court dates across all their cases.
+   */
+  @Get('upcoming')
+  findUpcoming(@Request() req: any) {
+    return this.courtDatesService.findUpcomingByUser(req.user.sub || req.user.userId);
   }
 
   @Patch(':id/status')
   updateStatus(@Param('id') id: string, @Body() body: any, @Request() req: any) {
-    return this.courtDatesService.updateStatus(id, body.status, req.user.userId, body.notes);
+    return this.courtDatesService.updateStatus(id, body.status, req.user.userId || req.user.sub, body.notes);
   }
 }

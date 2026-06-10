@@ -20,6 +20,13 @@ export declare class UsersController {
             role: import("@prisma/client").$Enums.UserRole;
         };
         token: string;
+        activeCases: {
+            id: string;
+            updatedAt: Date;
+            caseNumber: string;
+            caseType: import("@prisma/client").$Enums.CaseType;
+            status: import("@prisma/client").$Enums.CaseStatus;
+        }[];
     }>;
     getProfile(req: any, res: any): Promise<{
         id: string;
@@ -113,4 +120,22 @@ export declare class UsersController {
             currentEmployer: boolean;
         };
     }>;
+    getActiveSession(req: any): Promise<({
+        case: {
+            id: string;
+            caseNumber: string;
+            caseType: import("@prisma/client").$Enums.CaseType;
+            status: import("@prisma/client").$Enums.CaseStatus;
+        };
+    } & {
+        id: string;
+        language: string;
+        createdAt: Date;
+        updatedAt: Date;
+        userId: string;
+        status: import("@prisma/client").$Enums.SessionStatus;
+        aiContext: import("@prisma/client/runtime/library").JsonValue | null;
+        caseId: string;
+        messages: import("@prisma/client/runtime/library").JsonValue | null;
+    }) | null>;
 }

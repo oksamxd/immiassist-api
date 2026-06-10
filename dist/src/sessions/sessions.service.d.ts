@@ -58,6 +58,15 @@ export declare class SessionsService {
         nextAction: string | undefined;
         messageCount: number;
     }>;
+    sendLegalMessage(caseId: string, actorId: string, message: string): Promise<{
+        success: boolean;
+        message: {
+            role: string;
+            content: string;
+            timestamp: string;
+            actorId: string;
+        };
+    }>;
     close(sessionId: string): Promise<{
         id: string;
         language: string;
@@ -70,6 +79,23 @@ export declare class SessionsService {
         messages: import("@prisma/client/runtime/library").JsonValue | null;
     }>;
     findByUser(userId: string): Promise<({
+        case: {
+            caseNumber: string;
+            caseType: import("@prisma/client").$Enums.CaseType;
+            status: import("@prisma/client").$Enums.CaseStatus;
+        };
+    } & {
+        id: string;
+        language: string;
+        createdAt: Date;
+        updatedAt: Date;
+        userId: string;
+        status: import("@prisma/client").$Enums.SessionStatus;
+        aiContext: import("@prisma/client/runtime/library").JsonValue | null;
+        caseId: string;
+        messages: import("@prisma/client/runtime/library").JsonValue | null;
+    })[]>;
+    findByCaseForLegalTeam(caseId: string): Promise<({
         case: {
             caseNumber: string;
             caseType: import("@prisma/client").$Enums.CaseType;

@@ -12,30 +12,40 @@ async function main() {
 
   // ── Create Users ──────────────────────────────────────────────────────────
 
+  const adminUser = await prisma.user.upsert({
+    where: { email: 'admin@immiassist.io' },
+    update: {},
+    create: {
+      name: 'System Admin',
+      email: 'admin@immiassist.io',
+      phone: '+1-555-0000',
+      passwordHash: hashPassword('admin123'),
+      role: 'ADMIN',
+      language: 'en',
+    },
+  });
+
   const memberUser = await prisma.user.upsert({
     where: { email: 'member@immiassist.io' },
     update: {
       profile: {
         upsert: {
-          create: { preferredLanguage: 'en' },
+          create: { preferredLanguage: 'en', passportNumber: 'A1234567', nationality: 'India', countryOfResidence: 'USA', visaType: 'F-1' },
           update: {
-            nationality: null,
-            passportNumber: null,
-            countryOfResidence: null,
-            visaType: null,
-            currentLocation: null,
-            emergencyContact: null,
+            nationality: 'India',
+            passportNumber: 'A1234567',
+            countryOfResidence: 'USA',
+            visaType: 'F-1',
           }
         }
       },
       legalProfile: {
         upsert: {
-          create: {},
+          create: { currentVisaStatus: 'VALID', currentEmployer: 'TechCorp', visaExpiry: new Date('2027-01-01') },
           update: {
-            currentVisaStatus: null,
-            currentEmployer: null,
-            visaExpiry: null,
-            university: null,
+            currentVisaStatus: 'VALID',
+            currentEmployer: 'TechCorp',
+            visaExpiry: new Date('2027-01-01'),
           }
         }
       }
@@ -50,6 +60,35 @@ async function main() {
       profile: {
         create: {
           preferredLanguage: 'en',
+          passportNumber: 'A1234567',
+          nationality: 'India',
+          countryOfResidence: 'USA',
+          visaType: 'F-1',
+        },
+      },
+      legalProfile: {
+        create: {
+          currentVisaStatus: 'VALID',
+          currentEmployer: 'TechCorp',
+          visaExpiry: new Date('2027-01-01'),
+        },
+      },
+    },
+  });
+
+  const member2User = await prisma.user.upsert({
+    where: { email: 'newmember@immiassist.io' },
+    update: {},
+    create: {
+      name: 'Carlos Mendoza',
+      email: 'newmember@immiassist.io',
+      phone: '+1-555-0102',
+      passwordHash: hashPassword('member123'),
+      role: 'MEMBER',
+      language: 'es',
+      profile: {
+        create: {
+          preferredLanguage: 'es',
         },
       },
       legalProfile: {
@@ -102,30 +141,6 @@ async function main() {
     },
   });
 
-  const lawyer2User = await prisma.user.upsert({
-    where: { email: 'lawyer2@immiassist.io' },
-    update: {},
-    create: {
-      name: 'Priya Patel',
-      email: 'lawyer2@immiassist.io',
-      phone: '+1-555-0404',
-      passwordHash: hashPassword('lawyer123'),
-      role: 'LAWYER',
-      language: 'en',
-      lawyer: {
-        create: {
-          specialization: ['Family Sponsorship', 'Citizenship', 'Refugee Claims'],
-          location: 'Chicago, IL',
-          languages: ['English', 'Hindi', 'Gujarati'],
-          barNumber: 'IL-2019-7231',
-          availabilityStatus: true,
-          rating: 4.7,
-          casesHandled: 89,
-        },
-      },
-    },
-  });
-
   // ── Create a demo case ───────────────────────────────────────────────────
 
   const lawyerRecord = await prisma.lawyer.findUnique({ where: { userId: lawyerUser.id } });
@@ -133,12 +148,12 @@ async function main() {
 
   const demoCase = await prisma.case.upsert({
     where: { caseNumber: 'IMM-DEMO-001' },
-    update: {},
+    update: { status: 'COURT_DATE_ASSIGNED' },
     create: {
       caseNumber: 'IMM-DEMO-001',
       userId: memberUser.id,
       caseType: 'VISA_PROCESSING',
-      status: 'LAWYER_ASSIGNED',
+      status: 'COURT_DATE_ASSIGNED',
       priority: 'HIGH',
       riskLevel: 'MEDIUM',
       assignedLawyerId: lawyerUser.id,
@@ -169,7 +184,7 @@ async function main() {
     { eventType: 'LEGAL_ASSOCIATE_ASSIGNED' as const, title: 'Legal Associate Assigned', description: 'Marcus Rivera assigned to manage intake.', actorType: 'SYSTEM', actorId: null },
     { eventType: 'DOCUMENT_UPLOADED' as const, title: 'Documents Uploaded', description: 'Passport and I-20 uploaded for review.', actorType: 'USER', actorId: memberUser.id },
     { eventType: 'LAWYER_ASSIGNED' as const, title: 'Lawyer Assigned', description: 'Sarah Chen assigned as lead counsel.', actorType: 'SYSTEM', actorId: null },
-    { eventType: 'APPOINTMENT_SCHEDULED' as const, title: 'Consultation Scheduled', description: 'Initial consultation with Sarah Chen on June 10, 2026.', actorType: 'LAWYER', actorId: lawyerUser.id },
+    { eventType: 'APPOINTMENT_SCHEDULED' as const, title: 'Consultation Scheduled', description: 'Initial consultation scheduled.', actorType: 'LAWYER', actorId: lawyerUser.id },
   ];
 
   for (const event of events) {
@@ -186,18 +201,19 @@ async function main() {
     });
   }
 
-  // ── Create demo appointment ──────────────────────────────────────────────
+  // ── Create demo appointment (20h from now) ───────────────────────────────
 
+  const appointmentTime = new Date(Date.now() + 20 * 60 * 60 * 1000); // 20 hours from now
   if (lawyerRecord) {
     await prisma.appointment.upsert({
       where: { id: 'demo-appt-001' },
-      update: {},
+      update: { scheduledAt: appointmentTime },
       create: {
         id: 'demo-appt-001',
         caseId: demoCase.id,
         lawyerId: lawyerRecord.id,
         appointmentType: 'CONSULTATION',
-        scheduledAt: new Date('2026-06-10T14:00:00Z'),
+        scheduledAt: appointmentTime,
         meetingLink: 'https://meet.google.com/demo-immi',
         status: 'CONFIRMED',
         notes: 'Discuss H-1B cap-exempt filing strategy.',
@@ -205,25 +221,33 @@ async function main() {
     });
   }
 
-  // ── Create sample notification ───────────────────────────────────────────
+  // ── Create demo court date (5 days from now) ─────────────────────────────
 
-  await prisma.notification.create({
-    data: {
-      userId: memberUser.id,
-      caseId: demoCase.id,
-      type: 'APPOINTMENT_REMINDER',
-      title: 'Consultation Tomorrow',
-      message: 'Your consultation with Sarah Chen is scheduled for tomorrow at 2:00 PM.',
-      status: 'PENDING',
-    },
-  });
+  const courtDate = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000); // 5 days from now
+  if (lawyerRecord) {
+    await prisma.courtDate.upsert({
+      where: { id: 'demo-court-001' },
+      update: { date: courtDate },
+      create: {
+        id: 'demo-court-001',
+        caseId: demoCase.id,
+        lawyerId: lawyerRecord.id,
+        date: courtDate,
+        location: 'New York Immigration Court, Room 402',
+        status: 'SCHEDULED',
+        notes: 'Master Calendar Hearing for H-1B transition review.',
+      },
+    });
+  }
 
   console.log('✅ Seed complete!');
   console.log('');
   console.log('📋 Demo Credentials:');
-  console.log('  Member:         member@immiassist.io   / member123');
+  console.log('  Admin:          admin@immiassist.io    / admin123');
+  console.log('  Member 1:       member@immiassist.io   / member123');
+  console.log('  Member 2 (New): newmember@immiassist.io/ member123');
   console.log('  Lawyer:         lawyer@immiassist.io   / lawyer123');
-  console.log('  Legal Associate: associate@immiassist.io / associate123');
+  console.log('  Associate:      associate@immiassist.io / associate123');
 }
 
 main()

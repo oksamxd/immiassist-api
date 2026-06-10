@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs';
 import * as path from 'path';
+import { GoogleGenAI } from '@google/genai';
 
 export interface OrchestratorResponse {
   message: string;
@@ -116,8 +117,12 @@ export class AiService {
     }
   }
 
+  private get isGemini(): boolean {
+    return this.apiKey.length > 10 && !this.apiKey.startsWith('sk-');
+  }
+
   private get isConfigured(): boolean {
-    return this.apiKey.length > 10 && this.apiKey.startsWith('sk-');
+    return this.apiKey.length > 10;
   }
 
   private buildSystemPrompt(ctx: OnboardingContext): string {
@@ -145,7 +150,7 @@ PHASE RULES (follow strictly):
 - LEGAL_PROFILE phase: Collect missing legal and immigration fields one at a time. Set nextAction="SAVE_PROFILE_FIELD" and fieldToSave.
 - DOCUMENTS phase: Profiles are complete. Guide the user to upload specific missing documents. Set nextAction="UPLOAD_DOCUMENT" and suggestedDocuments to the missing doc types.
 - REVIEW phase: All data collected. Summarise the case and inform the user their legal team will contact them.
-- ACTIVE phase: Full case orchestration — appointments, court dates, status updates, lawyer communication.
+- ACTIVE phase: Answer any questions regarding the immigration process, terminology, and FAQs using the provided KNOWLEDGE BASE. If the user asks about court dates or appointments, refer to the provided context. If you don't know the answer, tell the user to ask their assigned lawyer. Keep your tone professional, empathetic, and clear.
 
 PROFILE FIELDS AND THEIR FRIENDLY NAMES:
 - passportNumber → "Passport number"
@@ -209,29 +214,48 @@ ${this.knowledgeBase}`;
           return { role: m.role, content };
         });
 
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.apiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          response_format: { type: 'json_object' },
-          messages: [
-            { role: 'system', content: this.buildSystemPrompt(ctx) },
-            ...historyMessages,
-            { role: 'user', content: userMessage },
-          ],
-          temperature: 0.3,
-          max_tokens: 600,
-        }),
-      });
+      let text = '';
+
+      if (this.isGemini) {
+        const ai = new GoogleGenAI({ apiKey: this.apiKey });
+        const geminiMessages = historyMessages.map(m => ({
+          role: m.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: m.content }]
+        }));
+        geminiMessages.push({ role: 'user', parts: [{ text: userMessage }] });
+
+        const response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: geminiMessages,
+          config: {
+            systemInstruction: this.buildSystemPrompt(ctx),
+            responseMimeType: 'application/json',
+            temperature: 0.3,
+          }
+        });
+        text = response.text || '';
+      } else {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.apiKey}`,
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            response_format: { type: 'json_object' },
+            messages: [
+              { role: 'system', content: this.buildSystemPrompt(ctx) },
+              ...historyMessages,
+              { role: 'user', content: userMessage },
+            ],
+            temperature: 0.3,
+            max_tokens: 600,
+          }),
+        });
 
         if (!response.ok) {
-          // If OpenAI quota exceeded (429) or other API errors, fallback to local logic
           if (response.status === 429) {
-            // Do not log noisy quota error, just use structured fallback
             return this.getStructuredFallback(ctx, userMessage);
           }
           const err = await response.text();
@@ -239,8 +263,10 @@ ${this.knowledgeBase}`;
           return this.getStructuredFallback(ctx, userMessage);
         }
 
-      const data = await response.json();
-      const text = data?.choices?.[0]?.message?.content || '';
+        const data = await response.json();
+        text = data?.choices?.[0]?.message?.content || '';
+      }
+
       try {
         const parsed = JSON.parse(text);
         parsed.phase = parsed.phase || ctx.phase;
@@ -259,6 +285,19 @@ ${this.knowledgeBase}`;
       return `${caseData.caseType?.replace(/_/g, ' ')} case — Status: ${caseData.status?.replace(/_/g, ' ')}.`;
     }
     try {
+      if (this.isGemini) {
+         const ai = new GoogleGenAI({ apiKey: this.apiKey });
+         const response = await ai.models.generateContent({
+           model: 'gemini-2.5-flash',
+           contents: `Summarise this immigration case: ${JSON.stringify(caseData)}`,
+           config: {
+             systemInstruction: 'You are a legal case summariser. Be concise and professional. Two sentences max.',
+             temperature: 0.3,
+           }
+         });
+         return response.text || 'Summary unavailable.';
+      }
+
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.apiKey}` },
@@ -425,10 +464,19 @@ ${this.knowledgeBase}`;
       };
     }
 
-    // ACTIVE phase — general orchestration
+    // ACTIVE phase — general orchestration and FAQ
+    const lowerMsg = message.toLowerCase().trim();
+    if (lowerMsg.includes('court') || lowerMsg.includes('hearing')) {
+       return {
+         message: `I can help you check your court dates. Based on our records, any upcoming court dates will be listed in your portal. If you need more details, please ask your lawyer.`,
+         options: ['View my court dates', 'Schedule a consultation'],
+         nextAction: 'NONE',
+         phase: 'ACTIVE',
+       };
+    }
     return {
-      message: `Your case is actively managed by your legal team. How can I assist you today?`,
-      options: ['Upload a document', 'Schedule a consultation', 'Check case status', 'View upcoming court dates'],
+      message: `Your case is actively managed by your legal team. How can I assist you today? If you have questions about the process, feel free to ask.`,
+      options: ['Upload a document', 'Schedule a consultation', 'Check case status', 'View upcoming court dates', 'What is an I-797?'],
       nextAction: 'NONE',
       phase: 'ACTIVE',
     };

@@ -43,6 +43,9 @@ let UsersController = class UsersController {
         res.setHeader('Expires', '0');
         return this.usersService.getOnboardingStatus(req.user.sub);
     }
+    getActiveSession(req) {
+        return this.usersService.getActiveSession(req.user.sub);
+    }
 };
 exports.UsersController = UsersController;
 __decorate([
@@ -86,6 +89,14 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], UsersController.prototype, "getOnboardingStatus", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Get)('active-session'),
+    __param(0, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], UsersController.prototype, "getActiveSession", null);
 exports.UsersController = UsersController = __decorate([
     (0, common_1.Controller)('users'),
     __metadata("design:paramtypes", [users_service_1.UsersService])

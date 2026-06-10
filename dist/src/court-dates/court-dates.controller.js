@@ -22,16 +22,19 @@ let CourtDatesController = class CourtDatesController {
         this.courtDatesService = courtDatesService;
     }
     create(req, dto) {
-        return this.courtDatesService.create(dto.caseId, dto.lawyerId, dto, req.user.userId);
+        return this.courtDatesService.create(dto.caseId, dto.lawyerId, dto, req.user.userId || req.user.sub);
     }
     findByCase(caseId) {
         return this.courtDatesService.findByCase(caseId);
     }
     findByLawyer(req) {
-        return this.courtDatesService.findByLawyer(req.user.userId);
+        return this.courtDatesService.findByLawyer(req.user.userId || req.user.sub);
+    }
+    findUpcoming(req) {
+        return this.courtDatesService.findUpcomingByUser(req.user.sub || req.user.userId);
     }
     updateStatus(id, body, req) {
-        return this.courtDatesService.updateStatus(id, body.status, req.user.userId, body.notes);
+        return this.courtDatesService.updateStatus(id, body.status, req.user.userId || req.user.sub, body.notes);
     }
 };
 exports.CourtDatesController = CourtDatesController;
@@ -57,6 +60,13 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], CourtDatesController.prototype, "findByLawyer", null);
+__decorate([
+    (0, common_1.Get)('upcoming'),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], CourtDatesController.prototype, "findUpcoming", null);
 __decorate([
     (0, common_1.Patch)(':id/status'),
     __param(0, (0, common_1.Param)('id')),

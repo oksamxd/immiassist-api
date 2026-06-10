@@ -51,6 +51,7 @@ export declare class AiService {
     private knowledgeBase;
     constructor(configService: ConfigService);
     private loadKnowledgeBase;
+    private get isGemini();
     private get isConfigured();
     private buildSystemPrompt;
     orchestrate(ctx: OnboardingContext, userMessage: string): Promise<OrchestratorResponse>;

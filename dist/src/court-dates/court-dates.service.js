@@ -88,6 +88,20 @@ let CourtDatesService = class CourtDatesService {
             orderBy: { date: 'asc' },
         });
     }
+    async findUpcomingByUser(userId) {
+        return this.prisma.courtDate.findMany({
+            where: {
+                case: { userId },
+                status: { in: ['SCHEDULED', 'POSTPONED'] },
+                date: { gte: new Date() },
+            },
+            include: {
+                case: { select: { caseNumber: true, caseType: true } },
+                lawyer: { include: { user: { select: { name: true, email: true } } } },
+            },
+            orderBy: { date: 'asc' },
+        });
+    }
     async updateStatus(id, status, actorId, notes) {
         const courtDate = await this.prisma.courtDate.update({
             where: { id },

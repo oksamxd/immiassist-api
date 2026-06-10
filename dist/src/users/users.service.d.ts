@@ -1,10 +1,12 @@
 import { PrismaService } from '../prisma.service';
 import { JwtStrategy } from '../auth/jwt.strategy';
+import { AuditService } from '../audit/audit.service';
 import { CreateUserDto, LoginDto, UpdateProfileDto } from './dto/user.dto';
 export declare class UsersService {
     private readonly prisma;
     private readonly jwt;
-    constructor(prisma: PrismaService, jwt: JwtStrategy);
+    private readonly audit;
+    constructor(prisma: PrismaService, jwt: JwtStrategy, audit: AuditService);
     private hashPassword;
     register(dto: CreateUserDto): Promise<{
         user: {
@@ -23,6 +25,13 @@ export declare class UsersService {
             role: import("@prisma/client").$Enums.UserRole;
         };
         token: string;
+        activeCases: {
+            id: string;
+            updatedAt: Date;
+            caseNumber: string;
+            caseType: import("@prisma/client").$Enums.CaseType;
+            status: import("@prisma/client").$Enums.CaseStatus;
+        }[];
     }>;
     getProfile(userId: string): Promise<{
         id: string;
@@ -116,4 +125,22 @@ export declare class UsersService {
             currentEmployer: boolean;
         };
     }>;
+    getActiveSession(userId: string): Promise<({
+        case: {
+            id: string;
+            caseNumber: string;
+            caseType: import("@prisma/client").$Enums.CaseType;
+            status: import("@prisma/client").$Enums.CaseStatus;
+        };
+    } & {
+        id: string;
+        language: string;
+        createdAt: Date;
+        updatedAt: Date;
+        userId: string;
+        status: import("@prisma/client").$Enums.SessionStatus;
+        aiContext: import("@prisma/client/runtime/library").JsonValue | null;
+        caseId: string;
+        messages: import("@prisma/client/runtime/library").JsonValue | null;
+    }) | null>;
 }

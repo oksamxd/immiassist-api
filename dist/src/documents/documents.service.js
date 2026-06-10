@@ -48,6 +48,7 @@ const prisma_service_1 = require("../prisma.service");
 const audit_service_1 = require("../audit/audit.service");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
+const fs_1 = require("fs");
 let DocumentsService = class DocumentsService {
     prisma;
     audit;
@@ -66,10 +67,12 @@ let DocumentsService = class DocumentsService {
         const doc = await this.prisma.document.create({
             data: {
                 caseId,
+                uploadedBy: userId,
                 documentType: docType,
                 fileUrl: `/uploads/${fileName}`,
                 fileName: file.originalname,
                 mimeType: file.mimetype,
+                verificationStatus: 'PENDING',
                 metadata: { size: file.size, uploadedBy: userId },
             },
         });
@@ -77,18 +80,42 @@ let DocumentsService = class DocumentsService {
             data: {
                 caseId,
                 eventType: 'DOCUMENT_UPLOADED',
-                title: 'Document Uploaded',
+                title: `Document Uploaded: ${docType}`,
+                description: `${docType} document uploaded by member.`,
                 actorType: 'USER',
                 actorId: userId,
-                metadata: { docType, fileName: file.originalname },
+                metadata: { docType, fileName: file.originalname, documentId: doc.id },
             },
         });
+        const caseRecord = await this.prisma.case.findUnique({ where: { id: caseId } });
+        if (caseRecord?.assignedLegalAssociateId) {
+            await this.prisma.notification.create({
+                data: {
+                    userId: caseRecord.assignedLegalAssociateId,
+                    caseId,
+                    type: 'DOCUMENT_UPLOADED',
+                    title: `📄 New Document: ${docType}`,
+                    message: `A new ${docType} document has been uploaded and is pending review.`,
+                },
+            });
+        }
+        if (caseRecord?.assignedLawyerId) {
+            await this.prisma.notification.create({
+                data: {
+                    userId: caseRecord.assignedLawyerId,
+                    caseId,
+                    type: 'DOCUMENT_UPLOADED',
+                    title: `📄 New Document: ${docType}`,
+                    message: `A new ${docType} document has been uploaded and is pending review.`,
+                },
+            });
+        }
         await this.audit.log({
             actorId: userId,
             action: 'DOCUMENT_UPLOADED',
             entityType: 'Document',
             entityId: doc.id,
-            payload: { docType, caseId },
+            payload: { docType, caseId, fileName: file.originalname },
         });
         return doc;
     }
@@ -127,7 +154,78 @@ let DocumentsService = class DocumentsService {
         return this.prisma.document.findMany({
             where: { case: { userId } },
             orderBy: { createdAt: 'desc' },
+            include: { case: { select: { caseNumber: true, caseType: true } } },
         });
+    }
+    async findPendingForLegalTeam() {
+        return this.prisma.document.findMany({
+            where: { verificationStatus: 'PENDING' },
+            orderBy: { createdAt: 'desc' },
+            include: {
+                case: {
+                    select: {
+                        id: true,
+                        caseNumber: true,
+                        caseType: true,
+                        status: true,
+                        member: { select: { id: true, name: true, email: true } },
+                    },
+                },
+            },
+        });
+    }
+    async verifyDocument(id, status, notes, actorId) {
+        const doc = await this.prisma.document.findUnique({ where: { id } });
+        if (!doc)
+            throw new common_1.NotFoundException('Document not found');
+        const updated = await this.prisma.document.update({
+            where: { id },
+            data: { verificationStatus: status, notes },
+        });
+        await this.prisma.caseEvent.create({
+            data: {
+                caseId: doc.caseId,
+                eventType: 'DOCUMENT_VERIFIED',
+                title: `Document ${status}: ${doc.documentType}`,
+                description: notes || `Document verification status set to ${status}.`,
+                actorType: 'USER',
+                actorId,
+                metadata: { documentId: id, status, docType: doc.documentType },
+            },
+        });
+        const caseRecord = await this.prisma.case.findUnique({ where: { id: doc.caseId } });
+        if (caseRecord) {
+            const statusMessages = {
+                VERIFIED: `✅ Your ${doc.documentType} document has been verified.`,
+                REJECTED: `❌ Your ${doc.documentType} document was rejected. ${notes ? `Reason: ${notes}` : ''}`,
+                NEEDS_RESUBMISSION: `⚠️ Your ${doc.documentType} document needs to be resubmitted. ${notes ? `Reason: ${notes}` : ''}`,
+            };
+            await this.prisma.notification.create({
+                data: {
+                    userId: caseRecord.userId,
+                    caseId: doc.caseId,
+                    type: `DOCUMENT_${status}`,
+                    title: `Document ${status.charAt(0) + status.slice(1).toLowerCase().replace('_', ' ')}`,
+                    message: statusMessages[status] || `Document status updated to ${status}.`,
+                },
+            });
+        }
+        await this.audit.log({
+            actorId,
+            action: `DOCUMENT_${status}`,
+            entityType: 'Document',
+            entityId: id,
+            payload: { status, notes, docType: doc.documentType },
+        });
+        return updated;
+    }
+    getDocumentStream(filePath) {
+        const absolutePath = path.join(process.cwd(), 'uploads', path.basename(filePath));
+        if (!fs.existsSync(absolutePath)) {
+            throw new common_1.NotFoundException('File not found on server');
+        }
+        const stream = (0, fs_1.createReadStream)(absolutePath);
+        return new common_1.StreamableFile(stream);
     }
 };
 exports.DocumentsService = DocumentsService;

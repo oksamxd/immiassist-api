@@ -46,13 +46,16 @@ exports.UsersService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma.service");
 const jwt_strategy_1 = require("../auth/jwt.strategy");
+const audit_service_1 = require("../audit/audit.service");
 const crypto = __importStar(require("crypto"));
 let UsersService = class UsersService {
     prisma;
     jwt;
-    constructor(prisma, jwt) {
+    audit;
+    constructor(prisma, jwt, audit) {
         this.prisma = prisma;
         this.jwt = jwt;
+        this.audit = audit;
     }
     hashPassword(password) {
         return crypto.createHash('sha256').update(password).digest('hex');
@@ -70,11 +73,14 @@ let UsersService = class UsersService {
                 role: 'MEMBER',
             },
         });
-        await this.prisma.memberProfile.create({
-            data: { userId: user.id },
-        });
-        await this.prisma.legalProfile.create({
-            data: { userId: user.id },
+        await this.prisma.memberProfile.create({ data: { userId: user.id } });
+        await this.prisma.legalProfile.create({ data: { userId: user.id } });
+        await this.audit.log({
+            actorId: user.id,
+            action: 'USER_REGISTERED',
+            entityType: 'User',
+            entityId: user.id,
+            payload: { email: user.email, name: user.name },
         });
         const token = this.jwt.sign({ sub: user.id, email: user.email, role: user.role });
         return { user: { id: user.id, name: user.name, email: user.email, role: user.role }, token };
@@ -82,10 +88,34 @@ let UsersService = class UsersService {
     async login(dto) {
         const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
         if (!user || user.passwordHash !== this.hashPassword(dto.password)) {
+            await this.audit.log({
+                actorType: 'ANONYMOUS',
+                action: 'LOGIN_FAILED',
+                entityType: 'User',
+                entityId: dto.email,
+                payload: { email: dto.email, reason: 'Invalid credentials' },
+            }).catch(() => { });
             throw new common_1.UnauthorizedException('Invalid email or password');
         }
+        await this.audit.log({
+            actorId: user.id,
+            action: 'LOGIN_SUCCESS',
+            entityType: 'User',
+            entityId: user.id,
+            payload: { email: user.email, role: user.role, loginAt: new Date().toISOString() },
+        });
         const token = this.jwt.sign({ sub: user.id, email: user.email, role: user.role });
-        return { user: { id: user.id, name: user.name, email: user.email, role: user.role }, token };
+        const activeCases = await this.prisma.case.findMany({
+            where: { userId: user.id, status: { notIn: ['CLOSED', 'RESOLVED'] } },
+            select: { id: true, caseNumber: true, caseType: true, status: true, updatedAt: true },
+            orderBy: { updatedAt: 'desc' },
+            take: 5,
+        });
+        return {
+            user: { id: user.id, name: user.name, email: user.email, role: user.role },
+            token,
+            activeCases,
+        };
     }
     async getProfile(userId) {
         const user = await this.prisma.user.findUnique({
@@ -121,9 +151,10 @@ let UsersService = class UsersService {
         if (dto.travelHistory !== undefined)
             memberData.travelHistory = dto.travelHistory;
         if (Object.keys(memberData).length > 0) {
-            await this.prisma.memberProfile.update({
+            await this.prisma.memberProfile.upsert({
                 where: { userId },
-                data: memberData,
+                update: memberData,
+                create: { userId, ...memberData },
             });
         }
         const legalData = {};
@@ -150,6 +181,13 @@ let UsersService = class UsersService {
                 update: legalData,
             });
         }
+        await this.audit.log({
+            actorId: userId,
+            action: 'PROFILE_UPDATED',
+            entityType: 'User',
+            entityId: userId,
+            payload: { memberFields: Object.keys(memberData), legalFields: Object.keys(legalData) },
+        });
         return this.getProfile(userId);
     }
     async getOnboardingStatus(userId) {
@@ -160,11 +198,11 @@ let UsersService = class UsersService {
             select: { documentType: true },
         });
         const uploadedTypes = documents.map((d) => d.documentType);
-        const memberProfileComplete = !!(profile?.passportNumber && profile?.passportNumber.trim().length > 0 && profile?.nationality && profile?.nationality.trim().length > 0 && profile?.countryOfResidence && profile?.countryOfResidence.trim().length > 0 && profile?.visaType && profile?.visaType.trim().length > 0);
-        const legalProfileComplete = !!(legalProfile?.currentVisaStatus && legalProfile?.currentVisaStatus.trim().length > 0 && legalProfile?.currentEmployer && legalProfile?.currentEmployer.trim().length > 0 && legalProfile?.visaExpiry);
+        const memberProfileComplete = !!(profile?.passportNumber?.trim() && profile?.nationality?.trim() && profile?.countryOfResidence?.trim() && profile?.visaType?.trim());
+        const legalProfileComplete = !!(legalProfile?.currentVisaStatus?.trim() && legalProfile?.currentEmployer?.trim() && legalProfile?.visaExpiry);
         return {
             profileComplete: memberProfileComplete,
-            legalProfileComplete: legalProfileComplete,
+            legalProfileComplete,
             documents: {
                 PASSPORT: uploadedTypes.includes('PASSPORT'),
                 VISA: uploadedTypes.includes('VISA'),
@@ -182,14 +220,25 @@ let UsersService = class UsersService {
                 currentVisaStatus: !!legalProfile?.currentVisaStatus,
                 visaExpiry: !!legalProfile?.visaExpiry,
                 currentEmployer: !!legalProfile?.currentEmployer,
-            }
+            },
         };
+    }
+    async getActiveSession(userId) {
+        const session = await this.prisma.guidanceSession.findFirst({
+            where: { userId, status: 'ACTIVE' },
+            orderBy: { updatedAt: 'desc' },
+            include: {
+                case: { select: { id: true, caseNumber: true, caseType: true, status: true } },
+            },
+        });
+        return session;
     }
 };
 exports.UsersService = UsersService;
 exports.UsersService = UsersService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        jwt_strategy_1.JwtStrategy])
+        jwt_strategy_1.JwtStrategy,
+        audit_service_1.AuditService])
 ], UsersService);
 //# sourceMappingURL=users.service.js.map

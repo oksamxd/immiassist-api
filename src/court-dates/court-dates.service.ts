@@ -82,6 +82,24 @@ export class CourtDatesService {
     });
   }
 
+  /**
+   * Returns all upcoming (not completed/cancelled) court dates for a member's cases.
+   */
+  async findUpcomingByUser(userId: string) {
+    return this.prisma.courtDate.findMany({
+      where: {
+        case: { userId },
+        status: { in: ['SCHEDULED', 'POSTPONED'] },
+        date: { gte: new Date() },
+      },
+      include: {
+        case: { select: { caseNumber: true, caseType: true } },
+        lawyer: { include: { user: { select: { name: true, email: true } } } },
+      },
+      orderBy: { date: 'asc' },
+    });
+  }
+
   async updateStatus(id: string, status: string, actorId: string, notes?: string) {
     const courtDate = await this.prisma.courtDate.update({
       where: { id },

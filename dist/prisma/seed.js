@@ -77,36 +77,47 @@ function hashPassword(password) {
 }
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var memberUser, lawyerUser, associateUser, lawyer2User, lawyerRecord, associateRecord, demoCase, events, _i, events_1, event_1;
+        var adminUser, memberUser, member2User, lawyerUser, associateUser, lawyerRecord, associateRecord, demoCase, events, _i, events_1, event_1, appointmentTime, courtDate;
         var _a;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
                     console.log('🌱 Seeding ImmiAssist database...');
                     return [4 /*yield*/, prisma.user.upsert({
+                            where: { email: 'admin@immiassist.io' },
+                            update: {},
+                            create: {
+                                name: 'System Admin',
+                                email: 'admin@immiassist.io',
+                                phone: '+1-555-0000',
+                                passwordHash: hashPassword('admin123'),
+                                role: 'ADMIN',
+                                language: 'en',
+                            },
+                        })];
+                case 1:
+                    adminUser = _b.sent();
+                    return [4 /*yield*/, prisma.user.upsert({
                             where: { email: 'member@immiassist.io' },
                             update: {
                                 profile: {
                                     upsert: {
-                                        create: { preferredLanguage: 'en' },
+                                        create: { preferredLanguage: 'en', passportNumber: 'A1234567', nationality: 'India', countryOfResidence: 'USA', visaType: 'F-1' },
                                         update: {
-                                            nationality: null,
-                                            passportNumber: null,
-                                            countryOfResidence: null,
-                                            visaType: null,
-                                            currentLocation: null,
-                                            emergencyContact: null,
+                                            nationality: 'India',
+                                            passportNumber: 'A1234567',
+                                            countryOfResidence: 'USA',
+                                            visaType: 'F-1',
                                         }
                                     }
                                 },
                                 legalProfile: {
                                     upsert: {
-                                        create: {},
+                                        create: { currentVisaStatus: 'VALID', currentEmployer: 'TechCorp', visaExpiry: new Date('2027-01-01') },
                                         update: {
-                                            currentVisaStatus: null,
-                                            currentEmployer: null,
-                                            visaExpiry: null,
-                                            university: null,
+                                            currentVisaStatus: 'VALID',
+                                            currentEmployer: 'TechCorp',
+                                            visaExpiry: new Date('2027-01-01'),
                                         }
                                     }
                                 }
@@ -121,6 +132,36 @@ function main() {
                                 profile: {
                                     create: {
                                         preferredLanguage: 'en',
+                                        passportNumber: 'A1234567',
+                                        nationality: 'India',
+                                        countryOfResidence: 'USA',
+                                        visaType: 'F-1',
+                                    },
+                                },
+                                legalProfile: {
+                                    create: {
+                                        currentVisaStatus: 'VALID',
+                                        currentEmployer: 'TechCorp',
+                                        visaExpiry: new Date('2027-01-01'),
+                                    },
+                                },
+                            },
+                        })];
+                case 2:
+                    memberUser = _b.sent();
+                    return [4 /*yield*/, prisma.user.upsert({
+                            where: { email: 'newmember@immiassist.io' },
+                            update: {},
+                            create: {
+                                name: 'Carlos Mendoza',
+                                email: 'newmember@immiassist.io',
+                                phone: '+1-555-0102',
+                                passwordHash: hashPassword('member123'),
+                                role: 'MEMBER',
+                                language: 'es',
+                                profile: {
+                                    create: {
+                                        preferredLanguage: 'es',
                                     },
                                 },
                                 legalProfile: {
@@ -128,8 +169,8 @@ function main() {
                                 },
                             },
                         })];
-                case 1:
-                    memberUser = _b.sent();
+                case 3:
+                    member2User = _b.sent();
                     return [4 /*yield*/, prisma.user.upsert({
                             where: { email: 'lawyer@immiassist.io' },
                             update: {},
@@ -153,7 +194,7 @@ function main() {
                                 },
                             },
                         })];
-                case 2:
+                case 4:
                     lawyerUser = _b.sent();
                     return [4 /*yield*/, prisma.user.upsert({
                             where: { email: 'associate@immiassist.io' },
@@ -174,47 +215,22 @@ function main() {
                                 },
                             },
                         })];
-                case 3:
-                    associateUser = _b.sent();
-                    return [4 /*yield*/, prisma.user.upsert({
-                            where: { email: 'lawyer2@immiassist.io' },
-                            update: {},
-                            create: {
-                                name: 'Priya Patel',
-                                email: 'lawyer2@immiassist.io',
-                                phone: '+1-555-0404',
-                                passwordHash: hashPassword('lawyer123'),
-                                role: 'LAWYER',
-                                language: 'en',
-                                lawyer: {
-                                    create: {
-                                        specialization: ['Family Sponsorship', 'Citizenship', 'Refugee Claims'],
-                                        location: 'Chicago, IL',
-                                        languages: ['English', 'Hindi', 'Gujarati'],
-                                        barNumber: 'IL-2019-7231',
-                                        availabilityStatus: true,
-                                        rating: 4.7,
-                                        casesHandled: 89,
-                                    },
-                                },
-                            },
-                        })];
-                case 4:
-                    lawyer2User = _b.sent();
-                    return [4 /*yield*/, prisma.lawyer.findUnique({ where: { userId: lawyerUser.id } })];
                 case 5:
+                    associateUser = _b.sent();
+                    return [4 /*yield*/, prisma.lawyer.findUnique({ where: { userId: lawyerUser.id } })];
+                case 6:
                     lawyerRecord = _b.sent();
                     return [4 /*yield*/, prisma.legalAssociate.findUnique({ where: { userId: associateUser.id } })];
-                case 6:
+                case 7:
                     associateRecord = _b.sent();
                     return [4 /*yield*/, prisma.case.upsert({
                             where: { caseNumber: 'IMM-DEMO-001' },
-                            update: {},
+                            update: { status: 'COURT_DATE_ASSIGNED' },
                             create: {
                                 caseNumber: 'IMM-DEMO-001',
                                 userId: memberUser.id,
                                 caseType: 'VISA_PROCESSING',
-                                status: 'LAWYER_ASSIGNED',
+                                status: 'COURT_DATE_ASSIGNED',
                                 priority: 'HIGH',
                                 riskLevel: 'MEDIUM',
                                 assignedLawyerId: lawyerUser.id,
@@ -237,19 +253,19 @@ function main() {
                                 },
                             },
                         })];
-                case 7:
+                case 8:
                     demoCase = _b.sent();
                     events = [
                         { eventType: 'CASE_CREATED', title: 'Case Opened', description: 'Immigration case created by Arjun Sharma.', actorType: 'USER', actorId: memberUser.id },
                         { eventType: 'LEGAL_ASSOCIATE_ASSIGNED', title: 'Legal Associate Assigned', description: 'Marcus Rivera assigned to manage intake.', actorType: 'SYSTEM', actorId: null },
                         { eventType: 'DOCUMENT_UPLOADED', title: 'Documents Uploaded', description: 'Passport and I-20 uploaded for review.', actorType: 'USER', actorId: memberUser.id },
                         { eventType: 'LAWYER_ASSIGNED', title: 'Lawyer Assigned', description: 'Sarah Chen assigned as lead counsel.', actorType: 'SYSTEM', actorId: null },
-                        { eventType: 'APPOINTMENT_SCHEDULED', title: 'Consultation Scheduled', description: 'Initial consultation with Sarah Chen on June 10, 2026.', actorType: 'LAWYER', actorId: lawyerUser.id },
+                        { eventType: 'APPOINTMENT_SCHEDULED', title: 'Consultation Scheduled', description: 'Initial consultation scheduled.', actorType: 'LAWYER', actorId: lawyerUser.id },
                     ];
                     _i = 0, events_1 = events;
-                    _b.label = 8;
-                case 8:
-                    if (!(_i < events_1.length)) return [3 /*break*/, 11];
+                    _b.label = 9;
+                case 9:
+                    if (!(_i < events_1.length)) return [3 /*break*/, 12];
                     event_1 = events_1[_i];
                     return [4 /*yield*/, prisma.caseEvent.create({
                             data: {
@@ -262,52 +278,60 @@ function main() {
                                 metadata: {},
                             },
                         })];
-                case 9:
-                    _b.sent();
-                    _b.label = 10;
                 case 10:
-                    _i++;
-                    return [3 /*break*/, 8];
+                    _b.sent();
+                    _b.label = 11;
                 case 11:
-                    if (!lawyerRecord) return [3 /*break*/, 13];
+                    _i++;
+                    return [3 /*break*/, 9];
+                case 12:
+                    appointmentTime = new Date(Date.now() + 20 * 60 * 60 * 1000);
+                    if (!lawyerRecord) return [3 /*break*/, 14];
                     return [4 /*yield*/, prisma.appointment.upsert({
                             where: { id: 'demo-appt-001' },
-                            update: {},
+                            update: { scheduledAt: appointmentTime },
                             create: {
                                 id: 'demo-appt-001',
                                 caseId: demoCase.id,
                                 lawyerId: lawyerRecord.id,
                                 appointmentType: 'CONSULTATION',
-                                scheduledAt: new Date('2026-06-10T14:00:00Z'),
+                                scheduledAt: appointmentTime,
                                 meetingLink: 'https://meet.google.com/demo-immi',
                                 status: 'CONFIRMED',
                                 notes: 'Discuss H-1B cap-exempt filing strategy.',
                             },
                         })];
-                case 12:
+                case 13:
                     _b.sent();
-                    _b.label = 13;
-                case 13: 
-                // ── Create sample notification ───────────────────────────────────────────
-                return [4 /*yield*/, prisma.notification.create({
-                        data: {
-                            userId: memberUser.id,
-                            caseId: demoCase.id,
-                            type: 'APPOINTMENT_REMINDER',
-                            title: 'Consultation Tomorrow',
-                            message: 'Your consultation with Sarah Chen is scheduled for tomorrow at 2:00 PM.',
-                            status: 'PENDING',
-                        },
-                    })];
+                    _b.label = 14;
                 case 14:
-                    // ── Create sample notification ───────────────────────────────────────────
+                    courtDate = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000);
+                    if (!lawyerRecord) return [3 /*break*/, 16];
+                    return [4 /*yield*/, prisma.courtDate.upsert({
+                            where: { id: 'demo-court-001' },
+                            update: { date: courtDate },
+                            create: {
+                                id: 'demo-court-001',
+                                caseId: demoCase.id,
+                                lawyerId: lawyerRecord.id,
+                                date: courtDate,
+                                location: 'New York Immigration Court, Room 402',
+                                status: 'SCHEDULED',
+                                notes: 'Master Calendar Hearing for H-1B transition review.',
+                            },
+                        })];
+                case 15:
                     _b.sent();
+                    _b.label = 16;
+                case 16:
                     console.log('✅ Seed complete!');
                     console.log('');
                     console.log('📋 Demo Credentials:');
-                    console.log('  Member:         member@immiassist.io   / member123');
+                    console.log('  Admin:          admin@immiassist.io    / admin123');
+                    console.log('  Member 1:       member@immiassist.io   / member123');
+                    console.log('  Member 2 (New): newmember@immiassist.io/ member123');
                     console.log('  Lawyer:         lawyer@immiassist.io   / lawyer123');
-                    console.log('  Legal Associate: associate@immiassist.io / associate123');
+                    console.log('  Associate:      associate@immiassist.io / associate123');
                     return [2 /*return*/];
             }
         });

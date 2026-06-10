@@ -1,6 +1,7 @@
 import { Injectable, ConflictException, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { JwtStrategy } from '../auth/jwt.strategy';
+import { AuditService } from '../audit/audit.service';
 import { CreateUserDto, LoginDto, UpdateProfileDto } from './dto/user.dto';
 import * as crypto from 'crypto';
 
@@ -9,6 +10,7 @@ export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtStrategy,
+    private readonly audit: AuditService,
   ) {}
 
   private hashPassword(password: string): string {
@@ -30,11 +32,16 @@ export class UsersService {
     });
 
     // Create empty member profile & legal profile
-    await this.prisma.memberProfile.create({
-      data: { userId: user.id },
-    });
-    await this.prisma.legalProfile.create({
-      data: { userId: user.id },
+    await this.prisma.memberProfile.create({ data: { userId: user.id } });
+    await this.prisma.legalProfile.create({ data: { userId: user.id } });
+
+    // Log registration event
+    await this.audit.log({
+      actorId: user.id,
+      action: 'USER_REGISTERED',
+      entityType: 'User',
+      entityId: user.id,
+      payload: { email: user.email, name: user.name },
     });
 
     const token = this.jwt.sign({ sub: user.id, email: user.email, role: user.role });
@@ -44,10 +51,41 @@ export class UsersService {
   async login(dto: LoginDto) {
     const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (!user || user.passwordHash !== this.hashPassword(dto.password)) {
+      // Log failed login attempt
+      await this.audit.log({
+        actorType: 'ANONYMOUS',
+        action: 'LOGIN_FAILED',
+        entityType: 'User',
+        entityId: dto.email,
+        payload: { email: dto.email, reason: 'Invalid credentials' },
+      }).catch(() => {}); // don't throw if user doesn't exist
       throw new UnauthorizedException('Invalid email or password');
     }
+
+    // Log successful login
+    await this.audit.log({
+      actorId: user.id,
+      action: 'LOGIN_SUCCESS',
+      entityType: 'User',
+      entityId: user.id,
+      payload: { email: user.email, role: user.role, loginAt: new Date().toISOString() },
+    });
+
     const token = this.jwt.sign({ sub: user.id, email: user.email, role: user.role });
-    return { user: { id: user.id, name: user.name, email: user.email, role: user.role }, token };
+
+    // Return user with their active cases summary for session resume
+    const activeCases = await this.prisma.case.findMany({
+      where: { userId: user.id, status: { notIn: ['CLOSED', 'RESOLVED'] } },
+      select: { id: true, caseNumber: true, caseType: true, status: true, updatedAt: true },
+      orderBy: { updatedAt: 'desc' },
+      take: 5,
+    });
+
+    return {
+      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      token,
+      activeCases,
+    };
   }
 
   async getProfile(userId: string) {
@@ -68,7 +106,6 @@ export class UsersService {
   }
 
   async updateProfile(userId: string, dto: UpdateProfileDto) {
-    // Member Profile Update
     const memberData: any = {};
     if (dto.passportNumber !== undefined) memberData.passportNumber = dto.passportNumber;
     if (dto.nationality !== undefined) memberData.nationality = dto.nationality;
@@ -79,13 +116,13 @@ export class UsersService {
     if (dto.travelHistory !== undefined) memberData.travelHistory = dto.travelHistory;
 
     if (Object.keys(memberData).length > 0) {
-      await this.prisma.memberProfile.update({
+      await this.prisma.memberProfile.upsert({
         where: { userId },
-        data: memberData,
+        update: memberData,
+        create: { userId, ...memberData },
       });
     }
 
-    // Legal Profile Update
     const legalData: any = {};
     if (dto.currentVisaStatus !== undefined) legalData.currentVisaStatus = dto.currentVisaStatus;
     if (dto.visaExpiry !== undefined) legalData.visaExpiry = new Date(dto.visaExpiry);
@@ -97,13 +134,21 @@ export class UsersService {
     if (dto.dependents !== undefined) legalData.dependents = dto.dependents;
 
     if (Object.keys(legalData).length > 0) {
-      // Upsert just in case it doesn't exist for older users
       await this.prisma.legalProfile.upsert({
         where: { userId },
         create: { userId, ...legalData },
         update: legalData,
       });
     }
+
+    // Log profile update
+    await this.audit.log({
+      actorId: userId,
+      action: 'PROFILE_UPDATED',
+      entityType: 'User',
+      entityId: userId,
+      payload: { memberFields: Object.keys(memberData), legalFields: Object.keys(legalData) },
+    });
 
     return this.getProfile(userId);
   }
@@ -117,13 +162,12 @@ export class UsersService {
     });
 
     const uploadedTypes = documents.map((d: any) => d.documentType);
-    
-    const memberProfileComplete = !!(profile?.passportNumber && profile?.passportNumber.trim().length > 0 && profile?.nationality && profile?.nationality.trim().length > 0 && profile?.countryOfResidence && profile?.countryOfResidence.trim().length > 0 && profile?.visaType && profile?.visaType.trim().length > 0);
-    const legalProfileComplete = !!(legalProfile?.currentVisaStatus && legalProfile?.currentVisaStatus.trim().length > 0 && legalProfile?.currentEmployer && legalProfile?.currentEmployer.trim().length > 0 && legalProfile?.visaExpiry);
+    const memberProfileComplete = !!(profile?.passportNumber?.trim() && profile?.nationality?.trim() && profile?.countryOfResidence?.trim() && profile?.visaType?.trim());
+    const legalProfileComplete = !!(legalProfile?.currentVisaStatus?.trim() && legalProfile?.currentEmployer?.trim() && legalProfile?.visaExpiry);
 
     return {
       profileComplete: memberProfileComplete,
-      legalProfileComplete: legalProfileComplete,
+      legalProfileComplete,
       documents: {
         PASSPORT: uploadedTypes.includes('PASSPORT'),
         VISA: uploadedTypes.includes('VISA'),
@@ -141,7 +185,22 @@ export class UsersService {
         currentVisaStatus: !!legalProfile?.currentVisaStatus,
         visaExpiry: !!legalProfile?.visaExpiry,
         currentEmployer: !!legalProfile?.currentEmployer,
-      }
+      },
     };
+  }
+
+  /**
+   * Returns the last active session for a user's most recent case.
+   * Used to resume conversations after login.
+   */
+  async getActiveSession(userId: string) {
+    const session = await this.prisma.guidanceSession.findFirst({
+      where: { userId, status: 'ACTIVE' },
+      orderBy: { updatedAt: 'desc' },
+      include: {
+        case: { select: { id: true, caseNumber: true, caseType: true, status: true } },
+      },
+    });
+    return session;
   }
 }
