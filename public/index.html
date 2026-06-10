@@ -515,6 +515,32 @@
                 console.log('[initApp] all onboarding complete → renderDashboard()');
             }
 
+            // ── Resume Active Session Logic ──────────────────────────────────
+            try {
+                const sessRes = await fetch(`${API}/users/active-session`, {
+                    headers: { 'Authorization': `Bearer ${state.token}` }
+                });
+                if (sessRes.ok) {
+                    const sessionData = await sessRes.json();
+                    if (sessionData && sessionData.case) {
+                        console.log('[initApp] Resuming active session');
+                        // Show the layout first
+                        document.getElementById('app').innerHTML = document.getElementById('app-view').innerHTML;
+                        safeCreateIcons();
+                        document.getElementById('user-name').innerText = state.user.name || state.user.email;
+                        document.getElementById('user-initials').innerText = (state.user.name || state.user.email).charAt(0).toUpperCase();
+                        document.getElementById('user-role-label').innerText = state.user.role.replace(/_/g, ' ');
+                        setupSidebar();
+                        initWebSocket();
+                        
+                        // Wait for cases list to populate (for selectCase to work properly, or just pass it)
+                        window.casesList = [sessionData.case];
+                        await selectCase(sessionData.case, sessionData.id);
+                        return;
+                    }
+                }
+            } catch(e) { console.warn('Could not fetch active session', e); }
+
             // ── Step 3: Dashboard (only reached after all checks pass) ───────
             renderDashboard();
         }
@@ -818,6 +844,28 @@
                 // Build Dashboard Cards
                 const grid = document.getElementById('dashboard-grid');
                 if (state.user.role === 'MEMBER') {
+                    // Fetch Court Dates for Members
+                    let courtDatesHtml = '';
+                    try {
+                        const courtRes = await fetch(`${API}/court-dates/upcoming`, {
+                            headers: {'Authorization': `Bearer ${state.token}`}
+                        });
+                        if (courtRes.ok) {
+                            const dates = await courtRes.json();
+                            if (dates.length > 0) {
+                                courtDatesHtml = dates.map(d => `
+                                    <div style="padding: 0.5rem 0; border-bottom: 1px solid var(--border)">
+                                        <strong>${new Date(d.date).toLocaleDateString()}</strong> at ${new Date(d.date).toLocaleTimeString()}<br>
+                                        <small>${d.location}</small><br>
+                                        <small style="color:var(--text-muted)">${d.notes || ''}</small>
+                                    </div>
+                                `).join('');
+                            } else {
+                                courtDatesHtml = '<p>No upcoming court dates.</p>';
+                            }
+                        }
+                    } catch(e) {}
+
                     grid.innerHTML = `
                         <div class="card glass-panel" style="padding: 1.5rem">
                             <h3 style="margin-bottom: 1rem; color: #818cf8"><i data-lucide="user"></i> Context</h3>
@@ -832,21 +880,53 @@
                             <p><strong>Employer:</strong> ${state.user.legalProfile?.currentEmployer || 'N/A'}</p>
                         </div>
                         <div class="card glass-panel" style="padding: 1.5rem">
-                            <h3 style="margin-bottom: 1rem; color: #818cf8"><i data-lucide="plane"></i> Travel Summary</h3>
-                            <p><strong>Country of Residence:</strong> ${state.user.profile?.countryOfResidence || 'N/A'}</p>
-                            <p><strong>Port of Entry:</strong> ${state.user.profile?.portOfEntry || 'N/A'}</p>
-                        </div>
-                        <div class="card glass-panel" style="padding: 1.5rem">
                             <h3 style="margin-bottom: 1rem; color: #818cf8"><i data-lucide="folder"></i> Case Summary</h3>
                             <p><strong>Active Cases:</strong> ${list.length}</p>
                             ${list.length > 0 ? `<button class="btn btn-secondary" style="margin-top:1rem" onclick="selectCaseId('${list[0].id}')">View Latest Case</button>` : '<p>No active cases.</p>'}
                         </div>
+                        <div class="card glass-panel" style="padding: 1.5rem">
+                            <h3 style="margin-bottom: 1rem; color: #f59e0b"><i data-lucide="scale"></i> Upcoming Court Dates</h3>
+                            ${courtDatesHtml}
+                        </div>
                     `;
                 } else {
+                    let pendingDocsHtml = '<p>No pending documents.</p>';
+                    try {
+                        const docRes = await fetch(`${API}/documents/pending`, {
+                            headers: {'Authorization': `Bearer ${state.token}`}
+                        });
+                        if (docRes.ok) {
+                            const docs = await docRes.json();
+                            if (docs.length > 0) {
+                                pendingDocsHtml = docs.map(d => `
+                                    <div style="display:flex; justify-content:space-between; align-items:center; padding: 0.5rem 0; border-bottom: 1px solid var(--border)">
+                                        <div>
+                                            <strong>${d.documentType}</strong> for Case <a href="#" onclick="selectCaseId('${d.caseId}')">${d.case?.caseNumber || d.caseId}</a><br>
+                                            <a href="${API}/documents/${d.id}/download" target="_blank" style="font-size: 0.8rem; color: var(--primary)">Download File</a>
+                                        </div>
+                                        <div style="display:flex; gap: 0.5rem;">
+                                            <button class="btn btn-primary" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;" onclick="verifyDocument('${d.id}', true)">Verify</button>
+                                            <button class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;" onclick="verifyDocument('${d.id}', false)">Reject</button>
+                                        </div>
+                                    </div>
+                                `).join('');
+                            }
+                        }
+                    } catch(e) {}
+
                     grid.innerHTML = `
                         <div class="card glass-panel" style="padding: 1.5rem">
                             <h3 style="margin-bottom: 1rem; color: #818cf8"><i data-lucide="briefcase"></i> Caseload</h3>
                             <p><strong>Active Cases:</strong> ${list.length}</p>
+                            ${list.map(c => `
+                                <div style="padding: 0.5rem 0; border-bottom: 1px solid var(--border)">
+                                    <a href="#" onclick="selectCaseId('${c.id}')">${c.caseNumber || 'Unnamed Case'}</a> - ${c.status}
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="card glass-panel" style="padding: 1.5rem">
+                            <h3 style="margin-bottom: 1rem; color: #f59e0b"><i data-lucide="file-check"></i> Pending Document Review</h3>
+                            ${pendingDocsHtml}
                         </div>
                     `;
                 }
@@ -856,6 +936,27 @@
                 window.casesList = list;
             } catch(e) {
                 console.error('loadCases error:', e);
+            }
+        }
+
+        async function verifyDocument(docId, isValid) {
+            try {
+                const res = await fetch(`${API}/documents/${docId}/verify`, {
+                    method: 'PATCH',
+                    headers: {'Authorization': `Bearer ${state.token}`, 'Content-Type': 'application/json'},
+                    body: JSON.stringify({ 
+                        status: isValid ? 'VERIFIED' : 'REJECTED',
+                        notes: isValid ? 'Looks good.' : 'Please re-upload a clearer copy.' 
+                    })
+                });
+                if (res.ok) {
+                    alert('Document updated.');
+                    loadCases(); // refresh dashboard
+                } else {
+                    alert('Failed to verify document.');
+                }
+            } catch(e) {
+                alert('Network error.');
             }
         }
 
@@ -882,7 +983,7 @@
             }
         }
 
-        async function selectCase(caseObj) {
+        async function selectCase(caseObj, existingSessionId = null) {
             try {
                 state.caseId = caseObj.id;
 
@@ -901,14 +1002,25 @@
                     <span class="badge warning">${(caseObj.status||'').replace(/_/g, ' ')}</span>
                 `;
 
-                // Init Chat Session
-                const sessRes = await fetch(`${API}/sessions`, {
-                    method: 'POST',
-                    headers: {'Authorization': `Bearer ${state.token}`, 'Content-Type': 'application/json'},
-                    body: JSON.stringify({ caseId: caseObj.id, sessionType: 'INTAKE' })
+                // Load existing session or create new
+                let session = null;
+                const activeRes = await fetch(`${API}/sessions/case/${caseObj.id}/active`, {
+                    headers: {'Authorization': `Bearer ${state.token}`}
                 });
-                if (sessRes.ok) {
-                    const session = await sessRes.json();
+                if (activeRes.ok) {
+                    session = await activeRes.json();
+                }
+
+                if (!session && state.user.role === 'MEMBER') {
+                    const sessRes = await fetch(`${API}/sessions`, {
+                        method: 'POST',
+                        headers: {'Authorization': `Bearer ${state.token}`, 'Content-Type': 'application/json'},
+                        body: JSON.stringify({ caseId: caseObj.id, sessionType: 'INTAKE' })
+                    });
+                    if (sessRes.ok) session = await sessRes.json();
+                }
+
+                if (session) {
                     state.sessionId = session.id;
                     const chatContainer = document.getElementById('chat-messages');
                     if (chatContainer) {
@@ -1019,15 +1131,25 @@
             if (!text || !state.sessionId) return;
             
             input.value = '';
-            appendMessage('user', text);
+            appendMessage(state.user.role === 'MEMBER' ? 'user' : 'assistant', text);
 
-            const res = await fetch(`${API}/sessions/${state.sessionId}/message`, {
+            let endpoint = `${API}/sessions/${state.sessionId}/message`;
+            if (state.user.role !== 'MEMBER') {
+                endpoint = `${API}/sessions/case/${state.caseId}/legal-reply`;
+            }
+
+            const res = await fetch(endpoint, {
                 method: 'POST',
                 headers: {'Authorization': `Bearer ${state.token}`, 'Content-Type': 'application/json'},
                 body: JSON.stringify({ message: text })
             });
             
             const data = await res.json();
+            
+            if (state.user.role !== 'MEMBER') {
+                // For legal reply, it just posts, no AI response to parse
+                return;
+            }
             
             // Parse structured JSON response from AI orchestrator
             let aiMsg = data.aiResponse.content;
