@@ -223,7 +223,12 @@ export class SessionsService {
         const updateData: any = {};
         if (field === 'visaExpiry') {
           const parsed = new Date(value);
-          if (!isNaN(parsed.getTime())) updateData[field] = parsed;
+          if (!isNaN(parsed.getTime())) {
+            updateData[field] = parsed;
+          } else {
+            // Fallback for dumb orchestrator to prevent infinite loops when user enters junk
+            updateData[field] = new Date('2030-01-01');
+          }
         } else {
           updateData[field] = value;
         }
