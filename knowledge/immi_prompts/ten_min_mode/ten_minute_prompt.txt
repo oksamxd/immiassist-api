@@ -1,0 +1,41 @@
+User context:
+- visa_type: {{visa_type}}
+- language: {{language}}
+
+Generate a 10-minute preparation sequence.
+
+Include:
+1. Calm reassurance
+2. Document readiness
+3. 3–5 likely questions
+4. Behavioral guidance
+5. Confidence reinforcement
+
+Output JSON:
+{
+ "steps": [
+   {
+     "type": "calm",
+     "text": ""
+   },
+   {
+     "type": "documents",
+     "text": ""
+   },
+   {
+     "type": "questions",
+     "questions": [
+       { "q": "", "hint": "" }
+     ]
+   },
+   {
+     "type": "dos_donts",
+     "dos": [],
+     "donts": []
+   },
+   {
+     "type": "confidence",
+     "text": ""
+   }
+ ]
+}

@@ -1,0 +1,15 @@
+User uploaded a notice.
+
+Extract:
+- notice_type
+- deadline
+- issuing_authority
+- urgency
+
+Return JSON:
+{
+ "notice_type": "",
+ "deadline": "",
+ "risk_level": "HIGH | CRITICAL",
+ "summary": ""
+}

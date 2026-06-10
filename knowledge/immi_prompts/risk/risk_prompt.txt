@@ -1,0 +1,11 @@
+Classify urgency:
+
+Input:
+- issue_type
+- keywords
+- context
+
+Output:
+{
+ "risk_level": "LOW | MEDIUM | HIGH | CRITICAL"
+}

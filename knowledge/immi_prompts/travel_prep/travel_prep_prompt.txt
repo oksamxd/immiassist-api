@@ -1,0 +1,19 @@
+User visa type: {{visa_type}}
+Travel destination: {{destination}}
+Documents available: {{documents}}
+
+Generate:
+
+1. Checklist
+2. Likely immigration questions
+3. Do’s and don’ts
+
+Return JSON:
+{
+ "checklist": [],
+ "questions": [
+  { "q": "", "hint": "" }
+ ],
+ "dos": [],
+ "donts": []
+}

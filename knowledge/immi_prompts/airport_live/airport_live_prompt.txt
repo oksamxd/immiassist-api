@@ -1,0 +1,24 @@
+User situation:
+- visa_type: {{visa_type}}
+- issue: {{issue_type}}
+
+Provide immediate guidance.
+
+Rules:
+- Very short instructions (1 line each)
+- No explanations
+- No legal advice
+
+Return JSON:
+{
+ "messages": [
+   "Stay calm.",
+   "Answer truthfully.",
+   "Keep responses short.",
+   "Do not guess answers."
+ ],
+ "escalation": {
+   "support": true,
+   "lawyer": false
+ }
+}

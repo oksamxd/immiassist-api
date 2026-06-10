@@ -1,0 +1,16 @@
+Understand the user’s immigration situation.
+
+Extract:
+- visa_type
+- issue_type (travel_prep, airport_questioning, notice_depart)
+- urgency
+- location (airport/country)
+- key details
+
+Respond in JSON:
+{
+ "case_type": "",
+ "visa_type": "",
+ "urgency": "",
+ "confidence": ""
+}
