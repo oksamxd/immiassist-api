@@ -8,6 +8,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SessionsModule = void 0;
 const common_1 = require("@nestjs/common");
+const realtime_module_1 = require("../realtime/realtime.module");
 const sessions_controller_1 = require("./sessions.controller");
 const sessions_service_1 = require("./sessions.service");
 const prisma_service_1 = require("../prisma.service");
@@ -16,6 +17,7 @@ let SessionsModule = class SessionsModule {
 exports.SessionsModule = SessionsModule;
 exports.SessionsModule = SessionsModule = __decorate([
     (0, common_1.Module)({
+        imports: [realtime_module_1.RealtimeModule],
         controllers: [sessions_controller_1.SessionsController],
         providers: [sessions_service_1.SessionsService, prisma_service_1.PrismaService],
         exports: [sessions_service_1.SessionsService],

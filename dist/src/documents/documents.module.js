@@ -8,6 +8,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DocumentsModule = void 0;
 const common_1 = require("@nestjs/common");
+const realtime_module_1 = require("../realtime/realtime.module");
 const platform_express_1 = require("@nestjs/platform-express");
 const documents_controller_1 = require("./documents.controller");
 const documents_service_1 = require("./documents.service");
@@ -17,7 +18,7 @@ let DocumentsModule = class DocumentsModule {
 exports.DocumentsModule = DocumentsModule;
 exports.DocumentsModule = DocumentsModule = __decorate([
     (0, common_1.Module)({
-        imports: [platform_express_1.MulterModule.register({ storage: undefined })],
+        imports: [platform_express_1.MulterModule.register({ storage: undefined }), realtime_module_1.RealtimeModule],
         controllers: [documents_controller_1.DocumentsController],
         providers: [documents_service_1.DocumentsService, prisma_service_1.PrismaService],
         exports: [documents_service_1.DocumentsService],

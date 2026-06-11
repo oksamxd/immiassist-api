@@ -49,12 +49,15 @@ const audit_service_1 = require("../audit/audit.service");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const fs_1 = require("fs");
+const realtime_gateway_1 = require("../realtime/realtime.gateway");
 let DocumentsService = class DocumentsService {
     prisma;
     audit;
-    constructor(prisma, audit) {
+    realtime;
+    constructor(prisma, audit, realtime) {
         this.prisma = prisma;
         this.audit = audit;
+        this.realtime = realtime;
         const uploadsDir = path.join(process.cwd(), 'uploads');
         if (!fs.existsSync(uploadsDir)) {
             fs.mkdirSync(uploadsDir, { recursive: true });
@@ -117,6 +120,8 @@ let DocumentsService = class DocumentsService {
             entityId: doc.id,
             payload: { docType, caseId, fileName: file.originalname },
         });
+        this.realtime.notifyTimelineUpdate(caseId, { event: 'DOCUMENT_UPLOADED', docType });
+        this.realtime.notifyCaseUpdate(caseId, { event: 'DOCUMENT_UPLOADED' });
         return doc;
     }
     async uploadOnboarding(userId, docType, file) {
@@ -217,6 +222,8 @@ let DocumentsService = class DocumentsService {
             entityId: id,
             payload: { status, notes, docType: doc.documentType },
         });
+        this.realtime.notifyTimelineUpdate(doc.caseId, { event: `DOCUMENT_${status}`, docType: doc.documentType });
+        this.realtime.notifyCaseUpdate(doc.caseId, { event: `DOCUMENT_${status}` });
         return updated;
     }
     getDocumentStream(filePath) {
@@ -232,6 +239,7 @@ exports.DocumentsService = DocumentsService;
 exports.DocumentsService = DocumentsService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        audit_service_1.AuditService])
+        audit_service_1.AuditService,
+        realtime_gateway_1.RealtimeGateway])
 ], DocumentsService);
 //# sourceMappingURL=documents.service.js.map

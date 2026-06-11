@@ -1,10 +1,12 @@
 import { StreamableFile } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 export declare class DocumentsService {
     private readonly prisma;
     private readonly audit;
-    constructor(prisma: PrismaService, audit: AuditService);
+    private readonly realtime;
+    constructor(prisma: PrismaService, audit: AuditService, realtime: RealtimeGateway);
     upload(userId: string, caseId: string, docType: string, file: Express.Multer.File): Promise<{
         id: string;
         createdAt: Date;

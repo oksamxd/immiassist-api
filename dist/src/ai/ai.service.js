@@ -199,7 +199,7 @@ ${this.knowledgeBase}`;
     }
     async orchestrate(ctx, userMessage) {
         ctx.phase = ctx.phase || detectPhase(ctx);
-        if (!this.isConfigured) {
+        if (!this.isConfigured || !this.prompts?.system) {
             return this.getStructuredFallback(ctx, userMessage);
         }
         try {
@@ -316,7 +316,12 @@ ${this.knowledgeBase}`;
     }
     async generateTenMinutePlan(ctx) {
         if (!this.isConfigured || !this.prompts?.tenMinute)
-            return null;
+            return {
+                steps: [
+                    { type: 'calm', text: 'Please add your OPENAI_API_KEY or GEMINI_API_KEY to the .env file to enable the real AI 10-minute coach.' },
+                    { type: 'calm', text: 'Currently running in fallback mode with no API key.' }
+                ]
+            };
         let prompt = this.prompts.tenMinute
             .replace('{{visa_type}}', ctx.profile?.visaType || 'F1')
             .replace('{{language}}', ctx.profile?.preferredLanguage || 'English');

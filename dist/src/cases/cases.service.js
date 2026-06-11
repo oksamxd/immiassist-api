@@ -15,16 +15,19 @@ const prisma_service_1 = require("../prisma.service");
 const workflow_service_1 = require("../workflow/workflow.service");
 const audit_service_1 = require("../audit/audit.service");
 const ai_service_1 = require("../ai/ai.service");
+const realtime_gateway_1 = require("../realtime/realtime.gateway");
 let CasesService = class CasesService {
     prisma;
     workflow;
     audit;
     ai;
-    constructor(prisma, workflow, audit, ai) {
+    realtime;
+    constructor(prisma, workflow, audit, ai, realtime) {
         this.prisma = prisma;
         this.workflow = workflow;
         this.audit = audit;
         this.ai = ai;
+        this.realtime = realtime;
     }
     generateCaseNumber() {
         const timestamp = Date.now().toString(36).toUpperCase();
@@ -64,6 +67,7 @@ let CasesService = class CasesService {
                 metadata: { caseType: dto.caseType },
             },
         });
+        this.realtime.notifyTimelineUpdate(caseRecord.id, { event: 'CASE_CREATED' });
         await this.audit.log({
             actorId: userId,
             action: 'CASE_CREATED',
@@ -89,6 +93,7 @@ let CasesService = class CasesService {
                 metadata: { plan },
             },
         });
+        this.realtime.notifyTimelineUpdate(caseId, { event: 'TEN_MINUTE_PREP_STARTED' });
         return { success: true, plan };
     }
     async triggerAirportLive(caseId, userId, issueType, contextString) {
@@ -108,6 +113,7 @@ let CasesService = class CasesService {
                 metadata: { issueType, risk },
             },
         });
+        this.realtime.notifyTimelineUpdate(caseId, { event: 'AIRPORT_LIVE_TRIGGERED' });
         if (risk.risk_level === 'HIGH' || risk.risk_level === 'CRITICAL') {
             await this.prisma.case.update({ where: { id: caseId }, data: { priority: 'URGENT' } });
             await this.prisma.caseEvent.create({
@@ -120,6 +126,7 @@ let CasesService = class CasesService {
                     metadata: { risk },
                 },
             });
+            this.realtime.notifyTimelineUpdate(caseId, { event: 'RISK_LEVEL_ESCALATED' });
         }
         return { success: true, risk };
     }
@@ -225,6 +232,7 @@ let CasesService = class CasesService {
                     actorId,
                 },
             });
+            this.realtime.notifyTimelineUpdate(caseId, { event: 'CASE_NOTE_ADDED' });
         }
         await this.audit.log({ actorId, action: 'CASE_UPDATED', entityType: 'Case', entityId: caseId, payload: dto });
         return updated;
@@ -236,6 +244,7 @@ exports.CasesService = CasesService = __decorate([
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         workflow_service_1.WorkflowService,
         audit_service_1.AuditService,
-        ai_service_1.AiService])
+        ai_service_1.AiService,
+        realtime_gateway_1.RealtimeGateway])
 ], CasesService);
 //# sourceMappingURL=cases.service.js.map

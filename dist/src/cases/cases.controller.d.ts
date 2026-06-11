@@ -7,101 +7,78 @@ export declare class CasesController {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            notes: string | null;
             issueType: string | null;
             visaCategory: string | null;
             destinationCountry: string | null;
+            notes: string | null;
             metadata: import("@prisma/client/runtime/library").JsonValue | null;
             caseId: string;
         } | null;
         events: {
+            title: string;
+            description: string | null;
             id: string;
             createdAt: Date;
             metadata: import("@prisma/client/runtime/library").JsonValue | null;
             eventType: import("@prisma/client").$Enums.EventType;
-            title: string;
-            description: string | null;
             actorType: string;
             actorId: string | null;
             caseId: string;
         }[];
     } & {
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        userId: string;
-        caseNumber: string;
         caseType: import("@prisma/client").$Enums.CaseType;
+        caseNumber: string;
+        id: string;
         status: import("@prisma/client").$Enums.CaseStatus;
         priority: import("@prisma/client").$Enums.Priority;
         riskLevel: import("@prisma/client").$Enums.RiskLevel;
-        assignedLawyerId: string | null;
-        assignedLegalAssociateId: string | null;
         summary: string | null;
         aiContext: import("@prisma/client/runtime/library").JsonValue | null;
         closedAt: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
+        userId: string;
+        assignedLawyerId: string | null;
+        assignedLegalAssociateId: string | null;
     }>;
     findMyCases(req: any): Promise<({
-        appointments: {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            status: import("@prisma/client").$Enums.AppointmentStatus;
-            notes: string | null;
-            caseId: string;
-            lawyerId: string;
-            appointmentType: import("@prisma/client").$Enums.AppointmentType;
-            scheduledAt: Date;
-            meetingLink: string | null;
-        }[];
-        courtDates: {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            location: string | null;
-            status: import("@prisma/client").$Enums.CourtDateStatus;
-            notes: string | null;
-            caseId: string;
-            lawyerId: string;
-            date: Date;
-        }[];
         member: {
-            id: string;
-            email: string;
-            name: string;
             profile: {
-                id: string;
-                createdAt: Date;
-                updatedAt: Date;
-                nationality: string | null;
                 passportNumber: string | null;
+                nationality: string | null;
                 countryOfResidence: string | null;
                 visaType: string | null;
                 preferredLanguage: string;
-                currentLocation: string | null;
                 emergencyContact: string | null;
-                travelHistory: import("@prisma/client/runtime/library").JsonValue | null;
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
                 userId: string;
+                currentLocation: string | null;
+                travelHistory: import("@prisma/client/runtime/library").JsonValue | null;
             } | null;
+            id: string;
+            name: string;
+            email: string;
         };
         detail: {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            notes: string | null;
             issueType: string | null;
             visaCategory: string | null;
             destinationCountry: string | null;
+            notes: string | null;
             metadata: import("@prisma/client/runtime/library").JsonValue | null;
             caseId: string;
         } | null;
         events: {
+            title: string;
+            description: string | null;
             id: string;
             createdAt: Date;
             metadata: import("@prisma/client/runtime/library").JsonValue | null;
             eventType: import("@prisma/client").$Enums.EventType;
-            title: string;
-            description: string | null;
             actorType: string;
             actorId: string | null;
             caseId: string;
@@ -120,44 +97,67 @@ export declare class CasesController {
             verificationStatus: import("@prisma/client").$Enums.DocumentVerificationStatus;
             aiExtracted: import("@prisma/client/runtime/library").JsonValue | null;
         }[];
+        appointments: {
+            id: string;
+            status: import("@prisma/client").$Enums.AppointmentStatus;
+            createdAt: Date;
+            updatedAt: Date;
+            notes: string | null;
+            caseId: string;
+            scheduledAt: Date;
+            lawyerId: string;
+            appointmentType: import("@prisma/client").$Enums.AppointmentType;
+            meetingLink: string | null;
+        }[];
+        courtDates: {
+            id: string;
+            status: import("@prisma/client").$Enums.CourtDateStatus;
+            createdAt: Date;
+            updatedAt: Date;
+            notes: string | null;
+            caseId: string;
+            date: Date;
+            lawyerId: string;
+            location: string | null;
+        }[];
         _count: {
             events: number;
             documents: number;
         };
     } & {
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        userId: string;
-        caseNumber: string;
         caseType: import("@prisma/client").$Enums.CaseType;
+        caseNumber: string;
+        id: string;
         status: import("@prisma/client").$Enums.CaseStatus;
         priority: import("@prisma/client").$Enums.Priority;
         riskLevel: import("@prisma/client").$Enums.RiskLevel;
-        assignedLawyerId: string | null;
-        assignedLegalAssociateId: string | null;
         summary: string | null;
         aiContext: import("@prisma/client/runtime/library").JsonValue | null;
         closedAt: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
+        userId: string;
+        assignedLawyerId: string | null;
+        assignedLegalAssociateId: string | null;
     })[]> | Promise<({
         member: {
-            id: string;
-            email: string;
-            name: string;
             profile: {
-                id: string;
-                createdAt: Date;
-                updatedAt: Date;
-                nationality: string | null;
                 passportNumber: string | null;
+                nationality: string | null;
                 countryOfResidence: string | null;
                 visaType: string | null;
                 preferredLanguage: string;
-                currentLocation: string | null;
                 emergencyContact: string | null;
-                travelHistory: import("@prisma/client/runtime/library").JsonValue | null;
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
                 userId: string;
+                currentLocation: string | null;
+                travelHistory: import("@prisma/client/runtime/library").JsonValue | null;
             } | null;
+            id: string;
+            name: string;
+            email: string;
         };
         assignedLawyer: {
             id: string;
@@ -167,20 +167,20 @@ export declare class CasesController {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            notes: string | null;
             issueType: string | null;
             visaCategory: string | null;
             destinationCountry: string | null;
+            notes: string | null;
             metadata: import("@prisma/client/runtime/library").JsonValue | null;
             caseId: string;
         } | null;
         events: {
+            title: string;
+            description: string | null;
             id: string;
             createdAt: Date;
             metadata: import("@prisma/client/runtime/library").JsonValue | null;
             eventType: import("@prisma/client").$Enums.EventType;
-            title: string;
-            description: string | null;
             actorType: string;
             actorId: string | null;
             caseId: string;
@@ -204,25 +204,25 @@ export declare class CasesController {
             documents: number;
         };
     } & {
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        userId: string;
-        caseNumber: string;
         caseType: import("@prisma/client").$Enums.CaseType;
+        caseNumber: string;
+        id: string;
         status: import("@prisma/client").$Enums.CaseStatus;
         priority: import("@prisma/client").$Enums.Priority;
         riskLevel: import("@prisma/client").$Enums.RiskLevel;
-        assignedLawyerId: string | null;
-        assignedLegalAssociateId: string | null;
         summary: string | null;
         aiContext: import("@prisma/client/runtime/library").JsonValue | null;
         closedAt: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
+        userId: string;
+        assignedLawyerId: string | null;
+        assignedLegalAssociateId: string | null;
     })[]> | Promise<({
         member: {
             id: string;
-            email: string;
             name: string;
+            email: string;
         };
         assignedLawyer: {
             id: string;
@@ -236,10 +236,10 @@ export declare class CasesController {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            notes: string | null;
             issueType: string | null;
             visaCategory: string | null;
             destinationCountry: string | null;
+            notes: string | null;
             metadata: import("@prisma/client/runtime/library").JsonValue | null;
             caseId: string;
         } | null;
@@ -248,44 +248,21 @@ export declare class CasesController {
             documents: number;
         };
     } & {
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        userId: string;
-        caseNumber: string;
         caseType: import("@prisma/client").$Enums.CaseType;
+        caseNumber: string;
+        id: string;
         status: import("@prisma/client").$Enums.CaseStatus;
         priority: import("@prisma/client").$Enums.Priority;
         riskLevel: import("@prisma/client").$Enums.RiskLevel;
-        assignedLawyerId: string | null;
-        assignedLegalAssociateId: string | null;
         summary: string | null;
         aiContext: import("@prisma/client/runtime/library").JsonValue | null;
         closedAt: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
+        userId: string;
+        assignedLawyerId: string | null;
+        assignedLegalAssociateId: string | null;
     })[]> | Promise<({
-        appointments: {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            status: import("@prisma/client").$Enums.AppointmentStatus;
-            notes: string | null;
-            caseId: string;
-            lawyerId: string;
-            appointmentType: import("@prisma/client").$Enums.AppointmentType;
-            scheduledAt: Date;
-            meetingLink: string | null;
-        }[];
-        courtDates: {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            location: string | null;
-            status: import("@prisma/client").$Enums.CourtDateStatus;
-            notes: string | null;
-            caseId: string;
-            lawyerId: string;
-            date: Date;
-        }[];
         assignedLawyer: {
             id: string;
             name: string;
@@ -299,20 +276,20 @@ export declare class CasesController {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            notes: string | null;
             issueType: string | null;
             visaCategory: string | null;
             destinationCountry: string | null;
+            notes: string | null;
             metadata: import("@prisma/client/runtime/library").JsonValue | null;
             caseId: string;
         } | null;
         events: {
+            title: string;
+            description: string | null;
             id: string;
             createdAt: Date;
             metadata: import("@prisma/client/runtime/library").JsonValue | null;
             eventType: import("@prisma/client").$Enums.EventType;
-            title: string;
-            description: string | null;
             actorType: string;
             actorId: string | null;
             caseId: string;
@@ -322,182 +299,121 @@ export declare class CasesController {
             documentType: import("@prisma/client").$Enums.DocumentType;
             verificationStatus: import("@prisma/client").$Enums.DocumentVerificationStatus;
         }[];
+        appointments: {
+            id: string;
+            status: import("@prisma/client").$Enums.AppointmentStatus;
+            createdAt: Date;
+            updatedAt: Date;
+            notes: string | null;
+            caseId: string;
+            scheduledAt: Date;
+            lawyerId: string;
+            appointmentType: import("@prisma/client").$Enums.AppointmentType;
+            meetingLink: string | null;
+        }[];
+        courtDates: {
+            id: string;
+            status: import("@prisma/client").$Enums.CourtDateStatus;
+            createdAt: Date;
+            updatedAt: Date;
+            notes: string | null;
+            caseId: string;
+            date: Date;
+            lawyerId: string;
+            location: string | null;
+        }[];
         _count: {
             events: number;
             documents: number;
         };
     } & {
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        userId: string;
-        caseNumber: string;
         caseType: import("@prisma/client").$Enums.CaseType;
+        caseNumber: string;
+        id: string;
         status: import("@prisma/client").$Enums.CaseStatus;
         priority: import("@prisma/client").$Enums.Priority;
         riskLevel: import("@prisma/client").$Enums.RiskLevel;
-        assignedLawyerId: string | null;
-        assignedLegalAssociateId: string | null;
         summary: string | null;
         aiContext: import("@prisma/client/runtime/library").JsonValue | null;
         closedAt: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
+        userId: string;
+        assignedLawyerId: string | null;
+        assignedLegalAssociateId: string | null;
     })[]>;
     findOne(id: string): Promise<{
         validTransitions: string[];
-        sessions: {
-            id: string;
-            language: string;
-            createdAt: Date;
-            updatedAt: Date;
-            userId: string;
-            status: import("@prisma/client").$Enums.SessionStatus;
-            aiContext: import("@prisma/client/runtime/library").JsonValue | null;
-            caseId: string;
-            messages: import("@prisma/client/runtime/library").JsonValue | null;
-        }[];
-        notifications: {
-            id: string;
-            createdAt: Date;
-            userId: string;
-            status: import("@prisma/client").$Enums.NotificationStatus;
-            metadata: import("@prisma/client/runtime/library").JsonValue | null;
-            title: string;
-            caseId: string | null;
-            message: string;
-            type: string;
-            channel: import("@prisma/client").$Enums.DeliveryChannel;
-            sentAt: Date | null;
-            readAt: Date | null;
-        }[];
-        appointments: ({
-            lawyer: {
-                user: {
-                    name: string;
-                };
-            } & {
-                id: string;
-                createdAt: Date;
-                updatedAt: Date;
-                specialization: string[];
-                location: string | null;
-                languages: string[];
-                barNumber: string | null;
-                availabilityStatus: boolean;
-                rating: number;
-                casesHandled: number;
-                userId: string;
-            };
-        } & {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            status: import("@prisma/client").$Enums.AppointmentStatus;
-            notes: string | null;
-            caseId: string;
-            lawyerId: string;
-            appointmentType: import("@prisma/client").$Enums.AppointmentType;
-            scheduledAt: Date;
-            meetingLink: string | null;
-        })[];
-        courtDates: ({
-            lawyer: {
-                user: {
-                    name: string;
-                };
-            } & {
-                id: string;
-                createdAt: Date;
-                updatedAt: Date;
-                specialization: string[];
-                location: string | null;
-                languages: string[];
-                barNumber: string | null;
-                availabilityStatus: boolean;
-                rating: number;
-                casesHandled: number;
-                userId: string;
-            };
-        } & {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            location: string | null;
-            status: import("@prisma/client").$Enums.CourtDateStatus;
-            notes: string | null;
-            caseId: string;
-            lawyerId: string;
-            date: Date;
-        })[];
         member: {
-            id: string;
-            email: string;
-            name: string;
-            phone: string | null;
             profile: {
-                id: string;
-                createdAt: Date;
-                updatedAt: Date;
-                nationality: string | null;
                 passportNumber: string | null;
+                nationality: string | null;
                 countryOfResidence: string | null;
                 visaType: string | null;
                 preferredLanguage: string;
-                currentLocation: string | null;
                 emergencyContact: string | null;
-                travelHistory: import("@prisma/client/runtime/library").JsonValue | null;
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
                 userId: string;
+                currentLocation: string | null;
+                travelHistory: import("@prisma/client/runtime/library").JsonValue | null;
             } | null;
+            id: string;
+            name: string;
+            email: string;
+            phone: string | null;
         };
         assignedLawyer: {
-            id: string;
-            email: string;
-            name: string;
             lawyer: {
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
-                specialization: string[];
+                userId: string;
                 location: string | null;
+                specialization: string[];
                 languages: string[];
                 barNumber: string | null;
                 availabilityStatus: boolean;
                 rating: number;
                 casesHandled: number;
-                userId: string;
             } | null;
+            id: string;
+            name: string;
+            email: string;
         } | null;
         assignedAssociate: {
             id: string;
-            email: string;
             name: string;
+            email: string;
             legalAssociate: {
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
+                userId: string;
                 languages: string[];
                 availabilityStatus: boolean;
                 activeCaseCount: number;
-                userId: string;
             } | null;
         } | null;
         detail: {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            notes: string | null;
             issueType: string | null;
             visaCategory: string | null;
             destinationCountry: string | null;
+            notes: string | null;
             metadata: import("@prisma/client/runtime/library").JsonValue | null;
             caseId: string;
         } | null;
         events: {
+            title: string;
+            description: string | null;
             id: string;
             createdAt: Date;
             metadata: import("@prisma/client/runtime/library").JsonValue | null;
             eventType: import("@prisma/client").$Enums.EventType;
-            title: string;
-            description: string | null;
             actorType: string;
             actorId: string | null;
             caseId: string;
@@ -516,6 +432,90 @@ export declare class CasesController {
             verificationStatus: import("@prisma/client").$Enums.DocumentVerificationStatus;
             aiExtracted: import("@prisma/client/runtime/library").JsonValue | null;
         }[];
+        sessions: {
+            id: string;
+            status: import("@prisma/client").$Enums.SessionStatus;
+            aiContext: import("@prisma/client/runtime/library").JsonValue | null;
+            createdAt: Date;
+            updatedAt: Date;
+            userId: string;
+            caseId: string;
+            language: string;
+            messages: import("@prisma/client/runtime/library").JsonValue | null;
+        }[];
+        notifications: {
+            message: string;
+            type: string;
+            title: string;
+            id: string;
+            status: import("@prisma/client").$Enums.NotificationStatus;
+            createdAt: Date;
+            userId: string;
+            metadata: import("@prisma/client/runtime/library").JsonValue | null;
+            caseId: string | null;
+            channel: import("@prisma/client").$Enums.DeliveryChannel;
+            sentAt: Date | null;
+            readAt: Date | null;
+        }[];
+        appointments: ({
+            lawyer: {
+                user: {
+                    name: string;
+                };
+            } & {
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
+                userId: string;
+                location: string | null;
+                specialization: string[];
+                languages: string[];
+                barNumber: string | null;
+                availabilityStatus: boolean;
+                rating: number;
+                casesHandled: number;
+            };
+        } & {
+            id: string;
+            status: import("@prisma/client").$Enums.AppointmentStatus;
+            createdAt: Date;
+            updatedAt: Date;
+            notes: string | null;
+            caseId: string;
+            scheduledAt: Date;
+            lawyerId: string;
+            appointmentType: import("@prisma/client").$Enums.AppointmentType;
+            meetingLink: string | null;
+        })[];
+        courtDates: ({
+            lawyer: {
+                user: {
+                    name: string;
+                };
+            } & {
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
+                userId: string;
+                location: string | null;
+                specialization: string[];
+                languages: string[];
+                barNumber: string | null;
+                availabilityStatus: boolean;
+                rating: number;
+                casesHandled: number;
+            };
+        } & {
+            id: string;
+            status: import("@prisma/client").$Enums.CourtDateStatus;
+            createdAt: Date;
+            updatedAt: Date;
+            notes: string | null;
+            caseId: string;
+            date: Date;
+            lawyerId: string;
+            location: string | null;
+        })[];
         statusHistory: {
             id: string;
             createdAt: Date;
@@ -525,52 +525,52 @@ export declare class CasesController {
             newStatus: import("@prisma/client").$Enums.CaseStatus;
             remarks: string | null;
         }[];
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        userId: string;
-        caseNumber: string;
         caseType: import("@prisma/client").$Enums.CaseType;
+        caseNumber: string;
+        id: string;
         status: import("@prisma/client").$Enums.CaseStatus;
         priority: import("@prisma/client").$Enums.Priority;
         riskLevel: import("@prisma/client").$Enums.RiskLevel;
-        assignedLawyerId: string | null;
-        assignedLegalAssociateId: string | null;
         summary: string | null;
         aiContext: import("@prisma/client/runtime/library").JsonValue | null;
         closedAt: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
+        userId: string;
+        assignedLawyerId: string | null;
+        assignedLegalAssociateId: string | null;
     }>;
     updateStatus(id: string, body: any, req: any): Promise<{
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        userId: string;
-        caseNumber: string;
         caseType: import("@prisma/client").$Enums.CaseType;
+        caseNumber: string;
+        id: string;
         status: import("@prisma/client").$Enums.CaseStatus;
         priority: import("@prisma/client").$Enums.Priority;
         riskLevel: import("@prisma/client").$Enums.RiskLevel;
-        assignedLawyerId: string | null;
-        assignedLegalAssociateId: string | null;
         summary: string | null;
         aiContext: import("@prisma/client/runtime/library").JsonValue | null;
         closedAt: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
+        userId: string;
+        assignedLawyerId: string | null;
+        assignedLegalAssociateId: string | null;
     }>;
     update(id: string, dto: any, req: any): Promise<{
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        userId: string;
-        caseNumber: string;
         caseType: import("@prisma/client").$Enums.CaseType;
+        caseNumber: string;
+        id: string;
         status: import("@prisma/client").$Enums.CaseStatus;
         priority: import("@prisma/client").$Enums.Priority;
         riskLevel: import("@prisma/client").$Enums.RiskLevel;
-        assignedLawyerId: string | null;
-        assignedLegalAssociateId: string | null;
         summary: string | null;
         aiContext: import("@prisma/client/runtime/library").JsonValue | null;
         closedAt: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
+        userId: string;
+        assignedLawyerId: string | null;
+        assignedLegalAssociateId: string | null;
     }>;
     startTenMinuteMode(id: string, req: any): Promise<{
         success: boolean;

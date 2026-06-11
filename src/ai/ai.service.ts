@@ -214,7 +214,7 @@ ${this.knowledgeBase}`;
     // Ensure phase is correctly set
     ctx.phase = ctx.phase || detectPhase(ctx);
 
-    if (!this.isConfigured) {
+    if (!this.isConfigured || !this.prompts?.system) {
       return this.getStructuredFallback(ctx, userMessage);
     }
 

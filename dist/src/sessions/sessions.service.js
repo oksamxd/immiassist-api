@@ -14,6 +14,7 @@ const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma.service");
 const ai_service_1 = require("../ai/ai.service");
 const audit_service_1 = require("../audit/audit.service");
+const realtime_gateway_1 = require("../realtime/realtime.gateway");
 const REQUIRED_PROFILE_FIELDS = [
     'passportNumber',
     'nationality',
@@ -36,10 +37,12 @@ let SessionsService = class SessionsService {
     prisma;
     ai;
     audit;
-    constructor(prisma, ai, audit) {
+    realtime;
+    constructor(prisma, ai, audit, realtime) {
         this.prisma = prisma;
         this.ai = ai;
         this.audit = audit;
+        this.realtime = realtime;
     }
     getRequiredDocs(caseType) {
         return REQUIRED_DOCUMENTS[caseType || ''] || REQUIRED_DOCUMENTS.DEFAULT;
@@ -244,6 +247,7 @@ let SessionsService = class SessionsService {
                     metadata: { sessionId, phase: orchestrationResult.phase },
                 },
             });
+            this.realtime.notifyTimelineUpdate(session.caseId, { event: orchestrationResult.timelineEvent.type });
         }
         return {
             userMessage: { role: 'user', content: message },
@@ -284,6 +288,7 @@ let SessionsService = class SessionsService {
                 metadata: { type: 'legal_reply', sessionId: session.id },
             },
         });
+        this.realtime.notifyTimelineUpdate(caseId, { event: 'CASE_NOTE_ADDED' });
         const caseRecord = await this.prisma.case.findUnique({ where: { id: caseId } });
         if (caseRecord) {
             await this.prisma.notification.create({
@@ -331,6 +336,7 @@ exports.SessionsService = SessionsService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         ai_service_1.AiService,
-        audit_service_1.AuditService])
+        audit_service_1.AuditService,
+        realtime_gateway_1.RealtimeGateway])
 ], SessionsService);
 //# sourceMappingURL=sessions.service.js.map
