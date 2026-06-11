@@ -9,12 +9,12 @@ export class CasesController {
 
   @Post()
   create(@Request() req: any, @Body() dto: any) {
-    return this.casesService.create(req.user.userId, dto);
+    return this.casesService.create(req.user.sub, dto);
   }
 
   @Get()
   findMyCases(@Request() req: any) {
-    const { role, userId } = req.user;
+    const { role, sub: userId } = req.user;
     if (role === 'LAWYER') return this.casesService.findAllByLawyer(userId);
     if (role === 'LEGAL_ASSOCIATE') return this.casesService.findAllByAssociate(userId);
     if (role === 'ADMIN') return this.casesService.findAll();
@@ -28,21 +28,21 @@ export class CasesController {
 
   @Patch(':id/status')
   updateStatus(@Param('id') id: string, @Body() body: any, @Request() req: any) {
-    return this.casesService.updateStatus(id, body.status, req.user.userId, body.remarks);
+    return this.casesService.updateStatus(id, body.status, req.user.sub, body.remarks);
   }
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: any, @Request() req: any) {
-    return this.casesService.update(id, dto, req.user.userId);
+    return this.casesService.update(id, dto, req.user.sub);
   }
 
   @Post(':id/start-ten-minute-mode')
   startTenMinuteMode(@Param('id') id: string, @Request() req: any) {
-    return this.casesService.startTenMinuteMode(id, req.user.userId);
+    return this.casesService.startTenMinuteMode(id, req.user.sub);
   }
 
   @Post(':id/airport-live')
   triggerAirportLive(@Param('id') id: string, @Body() body: any, @Request() req: any) {
-    return this.casesService.triggerAirportLive(id, req.user.userId, body.issueType, body.contextString);
+    return this.casesService.triggerAirportLive(id, req.user.sub, body.issueType, body.contextString);
   }
 }
