@@ -553,7 +553,7 @@ ${this.knowledgeBase}`;
       return {
         message: `Your profile is complete. Please upload your Legal Notice to Depart or any relevant evidence to proceed. Use the upload button below.`,
         nextAction: 'UPLOAD_DOCUMENT',
-        suggestedDocuments: ['NOTICE_TO_DEPART'],
+        suggestedDocuments: ['NOTICE'],
         phase: 'DOCUMENTS',
         options: ['I have uploaded it', 'I need help with this document'],
         timelineEvent: {

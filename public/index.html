@@ -1425,9 +1425,12 @@
                             sendMessage();
                         }
                     }, 500);
+                } else {
+                    const errText = await res.text();
+                    appendMessage('assistant', `❌ Upload failed. Reason: ${errText}`);
                 }
             } catch(err) {
-                appendMessage('assistant', '❌ Upload failed. Please try again.');
+                appendMessage('assistant', '❌ Upload failed due to a network error. Please try again.');
             }
         }
 
