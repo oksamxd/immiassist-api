@@ -288,9 +288,11 @@ export class SessionsService {
            where: { lawyerId: caseRecord.assignedLawyerId, status: { not: 'CANCELLED' } }
         });
         
-        let targetDate = new Date();
-        targetDate.setDate(targetDate.getDate() + 1);
-        targetDate.setHours(10, 0, 0, 0);
+        let targetDate = scheduledAt ? new Date(scheduledAt) : new Date();
+        if (!scheduledAt) {
+          targetDate.setDate(targetDate.getDate() + 1);
+          targetDate.setHours(10, 0, 0, 0);
+        }
 
         for (let i = 0; i < 5; i++) {
            const conflict = existingAppts.find(a => Math.abs(a.scheduledAt.getTime() - targetDate.getTime()) < 3600000);

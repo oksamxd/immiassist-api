@@ -75,7 +75,10 @@ function detectPhase(ctx: Partial<OnboardingContext>): OnboardingPhase {
   if (ctx.caseType === 'GENERAL_CONSULTATION') return 'CASE_CREATION';
 
   const uploaded = ctx.uploadedDocuments || [];
-  const docsComplete = REQUIRED_DOCUMENTS.every((d) => uploaded.includes(d));
+  const reqDocs = ctx.requiredDocuments && ctx.requiredDocuments.length > 0 ? ctx.requiredDocuments : REQUIRED_DOCUMENTS;
+  
+  // Notice fallback: If user uploaded NOTICE, we consider it complete for the demo flow.
+  const docsComplete = reqDocs.every((d) => uploaded.includes(d)) || uploaded.includes('NOTICE');
   if (!docsComplete) return 'DOCUMENTS';
 
   if (ctx.caseStatus === 'UNDER_REVIEW') return 'REVIEW';
@@ -576,26 +579,33 @@ ${this.knowledgeBase}`;
 
     const lowerMsg = message.toLowerCase().trim();
     
-    if (lowerMsg.includes('schedule') || lowerMsg.includes('consultation') || lowerMsg.includes('appointment')) {
-      if (lowerMsg.includes('initial') || lowerMsg.includes('follow-up')) {
-         const type = lowerMsg.includes('follow-up') ? 'FOLLOW_UP' : 'CONSULTATION';
+    if (lowerMsg.includes('schedule') || lowerMsg.includes('consultation') || lowerMsg.includes('appointment') || lowerMsg.includes('meeting')) {
+       return {
+         message: `I can help you schedule a consultation with your lawyer. Here are some available timings. Please select one:`,
+         options: ['Tomorrow at 10:00 AM', 'Tomorrow at 2:00 PM', 'Next Monday at 11:00 AM'],
+         nextAction: 'NONE',
+         phase: 'ACTIVE',
+       };
+    }
+
+    if (lowerMsg.includes('10:00 am') || lowerMsg.includes('2:00 pm') || lowerMsg.includes('11:00 am')) {
          const date = new Date();
-         date.setDate(date.getDate() + 2);
-         date.setHours(10, 0, 0, 0);
+         if (lowerMsg.includes('tomorrow')) {
+            date.setDate(date.getDate() + 1);
+         } else {
+            date.setDate(date.getDate() + 3); // mock next monday
+         }
+         
+         if (lowerMsg.includes('10:00 am')) date.setHours(10, 0, 0, 0);
+         else if (lowerMsg.includes('2:00 pm')) date.setHours(14, 0, 0, 0);
+         else if (lowerMsg.includes('11:00 am')) date.setHours(11, 0, 0, 0);
+
          return {
-           message: `I've initiated the scheduling process for your ${type.replace('_', ' ')}. It is tentatively set for ${date.toLocaleDateString()} at 10:00 AM.`,
+           message: `Great! I've initiated the scheduling process for your consultation.`,
            nextAction: 'SCHEDULE_CONSULTATION',
-           appointmentDetails: { type, scheduledAt: date.toISOString() },
+           appointmentDetails: { type: 'CONSULTATION', scheduledAt: date.toISOString() },
            phase: 'ACTIVE',
          };
-      } else {
-        return {
-          message: `I can help you schedule a consultation with your lawyer. Would you like an initial consultation or a follow-up?`,
-          options: ['Initial Consultation', 'Follow-up Consultation'],
-          nextAction: 'NONE',
-          phase: 'ACTIVE',
-        };
-      }
     }
 
     if (lowerMsg.includes('court') || lowerMsg.includes('hearing')) {
