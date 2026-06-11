@@ -190,20 +190,22 @@ export class SessionsService {
       augmentedMessage = `${augmentedMessage}\n\n[SYSTEM CONTEXT - REAL DATA: Upcoming appointments: ${apptInfo}]`;
     }
 
-    existingMessages.push({
+    const userMsg = {
       role: 'user',
       content: message,
       timestamp: new Date().toISOString(),
-    });
+    };
+    existingMessages.push(userMsg);
 
     const orchestrationResult = await this.ai.orchestrate(ctx, augmentedMessage);
     const aiResponseJson = JSON.stringify(orchestrationResult);
 
-    existingMessages.push({
+    const aiMsg = {
       role: 'assistant',
       content: aiResponseJson,
       timestamp: new Date().toISOString(),
-    });
+    };
+    existingMessages.push(aiMsg);
 
     // Handle SAVE_PROFILE_FIELD — auto-save profile data
     if (
@@ -334,7 +336,7 @@ export class SessionsService {
                caseId: session.caseId,
                type: 'CONSULTATION_SCHEDULED',
                title: '📅 New Consultation Booked',
-               message: `You have a new consultation scheduled on ${finalScheduledAt.toLocaleString()} for case ${caseRecord.caseNumber}. Context gathered: ${JSON.stringify(orchestrationResult.aiContext || {})}`,
+               message: `You have a new consultation scheduled on ${finalScheduledAt.toLocaleString()} for case ${caseRecord.caseNumber}. Context gathered: ${JSON.stringify({ profile: ctx.profile, legalProfile: ctx.legalProfile })}`,
              }
            });
         }
