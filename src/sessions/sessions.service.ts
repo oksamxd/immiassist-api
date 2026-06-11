@@ -291,6 +291,10 @@ export class SessionsService {
             status: 'SCHEDULED',
           }
         });
+        await this.prisma.case.update({
+          where: { id: session.caseId },
+          data: { status: 'INTAKE_IN_PROGRESS' }
+        });
         await this.prisma.caseEvent.create({
           data: {
             caseId: session.caseId,
@@ -302,6 +306,10 @@ export class SessionsService {
         });
         this.realtime.notifyTimelineUpdate(session.caseId, { event: 'APPOINTMENT_SCHEDULED' });
       } else {
+        await this.prisma.case.update({
+          where: { id: session.caseId },
+          data: { status: 'INTAKE_IN_PROGRESS' }
+        });
         await this.prisma.caseEvent.create({
           data: {
             caseId: session.caseId,
