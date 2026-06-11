@@ -155,6 +155,7 @@ export class AiService {
     const missingDocs = (ctx.requiredDocuments || REQUIRED_DOCUMENTS).filter(
       (d) => !ctx.uploadedDocuments?.includes(d),
     );
+const displayMissingDocs = ctx.phase === 'DOCUMENTS' ? [] : missingDocs;
 
     return `You are Jana — a senior immigration case orchestrator at ImmiAssist. You are NOT a general chatbot. You follow a strict workflow.
 
@@ -163,7 +164,7 @@ CASE: ${ctx.caseNumber || 'New'} | TYPE: ${ctx.caseType || 'Not set'} | STATUS: 
 MEMBER PROFILE: ${missingMemberFields.length === 0 ? 'Complete' : `Missing: ${missingMemberFields.join(', ')}`}
 LEGAL PROFILE: ${missingLegalFields.length === 0 ? 'Complete' : `Missing: ${missingLegalFields.join(', ')}`}
 DOCUMENTS UPLOADED: ${ctx.uploadedDocuments?.join(', ') || 'None'}
-MISSING DOCUMENTS: ${missingDocs.join(', ') || 'None'}
+MISSING DOCUMENTS: ${displayMissingDocs.join(', ') || 'None'}
 
 PHASE RULES (follow strictly):
 - MEMBER_PROFILE phase: Collect missing basic profile fields one at a time. Set nextAction="SAVE_PROFILE_FIELD" and fieldToSave.

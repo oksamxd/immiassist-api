@@ -1414,12 +1414,16 @@
                 
                 if (res.ok) {
                     appendMessage('assistant', `✅ Successfully received ${file.name}. It has been added to your case file.`);
-                    // Reload timeline
-                    loadCases(); 
+                    // Reload timeline without switching view
+                    refreshContextPanel(); 
                     
                     // Auto-reply to AI
                     setTimeout(() => {
-                        sendOption('I have uploaded it');
+                        const input = document.getElementById('chat-input');
+                        if (input) {
+                            input.value = 'I have uploaded it';
+                            sendMessage();
+                        }
                     }, 500);
                 }
             } catch(err) {
