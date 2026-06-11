@@ -3,29 +3,29 @@ export declare class NotificationsService {
     private readonly prisma;
     constructor(prisma: PrismaService);
     findByUser(userId: string): Promise<{
+        message: string;
+        type: string;
+        title: string;
         id: string;
         createdAt: Date;
         userId: string;
         status: import("@prisma/client").$Enums.NotificationStatus;
         metadata: import("@prisma/client/runtime/library").JsonValue | null;
-        title: string;
         caseId: string | null;
-        message: string;
-        type: string;
         channel: import("@prisma/client").$Enums.DeliveryChannel;
         sentAt: Date | null;
         readAt: Date | null;
     }[]>;
     markAsRead(id: string): Promise<{
+        message: string;
+        type: string;
+        title: string;
         id: string;
         createdAt: Date;
         userId: string;
         status: import("@prisma/client").$Enums.NotificationStatus;
         metadata: import("@prisma/client/runtime/library").JsonValue | null;
-        title: string;
         caseId: string | null;
-        message: string;
-        type: string;
         channel: import("@prisma/client").$Enums.DeliveryChannel;
         sentAt: Date | null;
         readAt: Date | null;
@@ -38,15 +38,15 @@ export declare class NotificationsService {
         title: string;
         message: string;
     }): Promise<{
+        message: string;
+        type: string;
+        title: string;
         id: string;
         createdAt: Date;
         userId: string;
         status: import("@prisma/client").$Enums.NotificationStatus;
         metadata: import("@prisma/client/runtime/library").JsonValue | null;
-        title: string;
         caseId: string | null;
-        message: string;
-        type: string;
         channel: import("@prisma/client").$Enums.DeliveryChannel;
         sentAt: Date | null;
         readAt: Date | null;

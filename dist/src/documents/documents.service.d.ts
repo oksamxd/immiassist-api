@@ -65,8 +65,8 @@ export declare class DocumentsService {
     }>;
     findAllByUser(userId: string): Promise<({
         case: {
-            caseNumber: string;
             caseType: import("@prisma/client").$Enums.CaseType;
+            caseNumber: string;
         };
     } & {
         id: string;
@@ -84,9 +84,9 @@ export declare class DocumentsService {
     })[]>;
     findPendingForLegalTeam(): Promise<({
         case: {
-            id: string;
-            caseNumber: string;
             caseType: import("@prisma/client").$Enums.CaseType;
+            caseNumber: string;
+            id: string;
             status: import("@prisma/client").$Enums.CaseStatus;
             member: {
                 id: string;

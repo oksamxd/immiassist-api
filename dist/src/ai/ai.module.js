@@ -10,6 +10,7 @@ exports.AiModule = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const ai_service_1 = require("./ai.service");
+const voice_controller_1 = require("./voice.controller");
 let AiModule = class AiModule {
 };
 exports.AiModule = AiModule;
@@ -17,6 +18,7 @@ exports.AiModule = AiModule = __decorate([
     (0, common_1.Global)(),
     (0, common_1.Module)({
         imports: [config_1.ConfigModule],
+        controllers: [voice_controller_1.VoiceController],
         providers: [ai_service_1.AiService],
         exports: [ai_service_1.AiService],
     })

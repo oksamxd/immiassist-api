@@ -254,6 +254,67 @@ export class SessionsService {
       } catch { /* ignore invalid status */ }
     }
 
+    // Handle UPDATE_CASE_TYPE
+    if (orchestrationResult.nextAction === 'UPDATE_CASE_TYPE' && orchestrationResult.fieldToSave?.value) {
+      const type = orchestrationResult.fieldToSave.value;
+      try {
+        await this.prisma.case.update({
+          where: { id: session.caseId },
+          data: { caseType: type as any },
+        });
+        await this.prisma.caseEvent.create({
+          data: {
+            caseId: session.caseId,
+            eventType: 'CASE_STATUS_CHANGED',
+            title: 'Case Type Selected',
+            description: `User selected ${type.replace('_', ' ')} for this case.`,
+            actorType: 'USER',
+            actorId: userId,
+          },
+        });
+        this.realtime.notifyTimelineUpdate(session.caseId, { event: 'CASE_STATUS_CHANGED' });
+      } catch { /* ignore invalid type */ }
+    }
+
+    // Handle SCHEDULE_CONSULTATION
+    if (orchestrationResult.nextAction === 'SCHEDULE_CONSULTATION' && orchestrationResult.appointmentDetails) {
+      const { type, scheduledAt } = orchestrationResult.appointmentDetails;
+      const caseRecord = await this.prisma.case.findUnique({ where: { id: session.caseId } });
+      
+      if (caseRecord?.assignedLawyerId) {
+        await this.prisma.appointment.create({
+          data: {
+            caseId: session.caseId,
+            lawyerId: caseRecord.assignedLawyerId,
+            appointmentType: type as any,
+            scheduledAt: new Date(scheduledAt),
+            status: 'SCHEDULED',
+          }
+        });
+        await this.prisma.caseEvent.create({
+          data: {
+            caseId: session.caseId,
+            eventType: 'APPOINTMENT_SCHEDULED',
+            title: 'Consultation Scheduled',
+            description: `A ${type.replace('_', ' ')} has been scheduled.`,
+            actorType: 'SYSTEM',
+          }
+        });
+        this.realtime.notifyTimelineUpdate(session.caseId, { event: 'APPOINTMENT_SCHEDULED' });
+      } else {
+        await this.prisma.caseEvent.create({
+          data: {
+            caseId: session.caseId,
+            eventType: 'CASE_NOTE_ADDED',
+            title: 'Consultation Requested',
+            description: `A consultation has been requested but no lawyer is assigned yet.`,
+            actorType: 'SYSTEM',
+          }
+        });
+        this.realtime.notifyTimelineUpdate(session.caseId, { event: 'CASE_NOTE_ADDED' });
+      }
+    }
+
     await this.prisma.guidanceSession.update({
       where: { id: sessionId },
       data: { messages: existingMessages },

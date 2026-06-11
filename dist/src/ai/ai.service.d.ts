@@ -14,9 +14,13 @@ export interface OrchestratorResponse {
         description: string;
     };
     suggestedDocuments?: string[];
+    appointmentDetails?: {
+        type: string;
+        scheduledAt: string;
+    };
     phase?: OnboardingPhase;
 }
-export type OnboardingPhase = 'MEMBER_PROFILE' | 'LEGAL_PROFILE' | 'DOCUMENTS' | 'REVIEW' | 'ACTIVE';
+export type OnboardingPhase = 'MEMBER_PROFILE' | 'LEGAL_PROFILE' | 'CASE_CREATION' | 'DOCUMENTS' | 'REVIEW' | 'ACTIVE';
 export interface OnboardingContext {
     phase: OnboardingPhase;
     profile: {
@@ -62,4 +66,6 @@ export declare class AiService {
     private callLlmJson;
     detectPhase(ctx: Partial<OnboardingContext>): OnboardingPhase;
     private getStructuredFallback;
+    transcribeAudio(buffer: Buffer, filename: string): Promise<string>;
+    synthesizeSpeechStream(text: string): Promise<any>;
 }

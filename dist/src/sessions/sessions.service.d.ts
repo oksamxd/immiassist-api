@@ -12,14 +12,14 @@ export declare class SessionsService {
     private getRequiredDocs;
     private buildOnboardingContext;
     create(userId: string, dto: CreateSessionDto): Promise<{
+        language: string;
         id: string;
-        status: import("@prisma/client").$Enums.SessionStatus;
-        aiContext: import("@prisma/client/runtime/library").JsonValue | null;
         createdAt: Date;
         updatedAt: Date;
         userId: string;
+        status: import("@prisma/client").$Enums.SessionStatus;
+        aiContext: import("@prisma/client/runtime/library").JsonValue | null;
         caseId: string;
-        language: string;
         messages: import("@prisma/client/runtime/library").JsonValue | null;
     } | {
         messages: {
@@ -27,24 +27,24 @@ export declare class SessionsService {
             content: string;
             timestamp: string;
         }[];
+        language: string;
         id: string;
-        status: import("@prisma/client").$Enums.SessionStatus;
-        aiContext: import("@prisma/client/runtime/library").JsonValue | null;
         createdAt: Date;
         updatedAt: Date;
         userId: string;
+        status: import("@prisma/client").$Enums.SessionStatus;
+        aiContext: import("@prisma/client/runtime/library").JsonValue | null;
         caseId: string;
-        language: string;
     }>;
     findOne(id: string): Promise<{
+        language: string;
         id: string;
-        status: import("@prisma/client").$Enums.SessionStatus;
-        aiContext: import("@prisma/client/runtime/library").JsonValue | null;
         createdAt: Date;
         updatedAt: Date;
         userId: string;
+        status: import("@prisma/client").$Enums.SessionStatus;
+        aiContext: import("@prisma/client/runtime/library").JsonValue | null;
         caseId: string;
-        language: string;
         messages: import("@prisma/client/runtime/library").JsonValue | null;
     }>;
     sendMessage(sessionId: string, userId: string, message: string): Promise<{
@@ -70,14 +70,14 @@ export declare class SessionsService {
         };
     }>;
     close(sessionId: string): Promise<{
+        language: string;
         id: string;
-        status: import("@prisma/client").$Enums.SessionStatus;
-        aiContext: import("@prisma/client/runtime/library").JsonValue | null;
         createdAt: Date;
         updatedAt: Date;
         userId: string;
+        status: import("@prisma/client").$Enums.SessionStatus;
+        aiContext: import("@prisma/client/runtime/library").JsonValue | null;
         caseId: string;
-        language: string;
         messages: import("@prisma/client/runtime/library").JsonValue | null;
     }>;
     findByUser(userId: string): Promise<({
@@ -87,14 +87,14 @@ export declare class SessionsService {
             status: import("@prisma/client").$Enums.CaseStatus;
         };
     } & {
+        language: string;
         id: string;
-        status: import("@prisma/client").$Enums.SessionStatus;
-        aiContext: import("@prisma/client/runtime/library").JsonValue | null;
         createdAt: Date;
         updatedAt: Date;
         userId: string;
+        status: import("@prisma/client").$Enums.SessionStatus;
+        aiContext: import("@prisma/client/runtime/library").JsonValue | null;
         caseId: string;
-        language: string;
         messages: import("@prisma/client/runtime/library").JsonValue | null;
     })[]>;
     findByCaseForLegalTeam(caseId: string): Promise<({
@@ -104,14 +104,14 @@ export declare class SessionsService {
             status: import("@prisma/client").$Enums.CaseStatus;
         };
     } & {
+        language: string;
         id: string;
-        status: import("@prisma/client").$Enums.SessionStatus;
-        aiContext: import("@prisma/client/runtime/library").JsonValue | null;
         createdAt: Date;
         updatedAt: Date;
         userId: string;
+        status: import("@prisma/client").$Enums.SessionStatus;
+        aiContext: import("@prisma/client/runtime/library").JsonValue | null;
         caseId: string;
-        language: string;
         messages: import("@prisma/client/runtime/library").JsonValue | null;
     })[]>;
 }

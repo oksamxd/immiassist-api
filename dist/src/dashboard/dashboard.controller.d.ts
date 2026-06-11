@@ -14,12 +14,12 @@ export declare class DashboardController {
             upcomingAppointments: number;
         };
         cases: {
+            caseType: import("@prisma/client").$Enums.CaseType;
+            caseNumber: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             userId: string;
-            caseNumber: string;
-            caseType: import("@prisma/client").$Enums.CaseType;
             status: import("@prisma/client").$Enums.CaseStatus;
             priority: import("@prisma/client").$Enums.Priority;
             riskLevel: import("@prisma/client").$Enums.RiskLevel;
@@ -60,12 +60,12 @@ export declare class DashboardController {
                 name: string;
             };
         } & {
+            caseType: import("@prisma/client").$Enums.CaseType;
+            caseNumber: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             userId: string;
-            caseNumber: string;
-            caseType: import("@prisma/client").$Enums.CaseType;
             status: import("@prisma/client").$Enums.CaseStatus;
             priority: import("@prisma/client").$Enums.Priority;
             riskLevel: import("@prisma/client").$Enums.RiskLevel;
@@ -95,23 +95,23 @@ export declare class DashboardController {
                 meetingLink: string | null;
             }[];
             events: {
+                title: string;
+                description: string | null;
                 id: string;
                 createdAt: Date;
                 metadata: import("@prisma/client/runtime/library").JsonValue | null;
                 eventType: import("@prisma/client").$Enums.EventType;
-                title: string;
-                description: string | null;
                 actorType: string;
                 actorId: string | null;
                 caseId: string;
             }[];
         } & {
+            caseType: import("@prisma/client").$Enums.CaseType;
+            caseNumber: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             userId: string;
-            caseNumber: string;
-            caseType: import("@prisma/client").$Enums.CaseType;
             status: import("@prisma/client").$Enums.CaseStatus;
             priority: import("@prisma/client").$Enums.Priority;
             riskLevel: import("@prisma/client").$Enums.RiskLevel;

@@ -47,8 +47,8 @@ export declare class DocumentsController {
     }[]>;
     findMine(req: any): Promise<({
         case: {
-            caseNumber: string;
             caseType: import("@prisma/client").$Enums.CaseType;
+            caseNumber: string;
         };
     } & {
         id: string;
@@ -66,9 +66,9 @@ export declare class DocumentsController {
     })[]>;
     findPending(req: any): Promise<({
         case: {
-            id: string;
-            caseNumber: string;
             caseType: import("@prisma/client").$Enums.CaseType;
+            caseNumber: string;
+            id: string;
             status: import("@prisma/client").$Enums.CaseStatus;
             member: {
                 id: string;

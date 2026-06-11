@@ -26,10 +26,10 @@ export declare class UsersService {
         };
         token: string;
         activeCases: {
+            caseType: import("@prisma/client").$Enums.CaseType;
+            caseNumber: string;
             id: string;
             updatedAt: Date;
-            caseNumber: string;
-            caseType: import("@prisma/client").$Enums.CaseType;
             status: import("@prisma/client").$Enums.CaseStatus;
         }[];
     }>;
@@ -40,30 +40,30 @@ export declare class UsersService {
         phone: string | null;
         role: import("@prisma/client").$Enums.UserRole;
         profile: {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            nationality: string | null;
             passportNumber: string | null;
+            nationality: string | null;
             countryOfResidence: string | null;
             visaType: string | null;
             preferredLanguage: string;
-            currentLocation: string | null;
             emergencyContact: string | null;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            currentLocation: string | null;
             travelHistory: import("@prisma/client/runtime/library").JsonValue | null;
             userId: string;
         } | null;
         legalProfile: {
+            currentVisaStatus: string | null;
+            visaExpiry: Date | null;
+            currentEmployer: string | null;
+            university: string | null;
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            currentVisaStatus: string | null;
-            visaExpiry: Date | null;
             immigrationHistory: import("@prisma/client/runtime/library").JsonValue | null;
             previousNotices: import("@prisma/client/runtime/library").JsonValue | null;
             previousDenials: import("@prisma/client/runtime/library").JsonValue | null;
-            currentEmployer: string | null;
-            university: string | null;
             dependents: import("@prisma/client/runtime/library").JsonValue | null;
             userId: string;
         } | null;
@@ -75,30 +75,30 @@ export declare class UsersService {
         phone: string | null;
         role: import("@prisma/client").$Enums.UserRole;
         profile: {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            nationality: string | null;
             passportNumber: string | null;
+            nationality: string | null;
             countryOfResidence: string | null;
             visaType: string | null;
             preferredLanguage: string;
-            currentLocation: string | null;
             emergencyContact: string | null;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            currentLocation: string | null;
             travelHistory: import("@prisma/client/runtime/library").JsonValue | null;
             userId: string;
         } | null;
         legalProfile: {
+            currentVisaStatus: string | null;
+            visaExpiry: Date | null;
+            currentEmployer: string | null;
+            university: string | null;
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            currentVisaStatus: string | null;
-            visaExpiry: Date | null;
             immigrationHistory: import("@prisma/client/runtime/library").JsonValue | null;
             previousNotices: import("@prisma/client/runtime/library").JsonValue | null;
             previousDenials: import("@prisma/client/runtime/library").JsonValue | null;
-            currentEmployer: string | null;
-            university: string | null;
             dependents: import("@prisma/client/runtime/library").JsonValue | null;
             userId: string;
         } | null;
@@ -127,14 +127,14 @@ export declare class UsersService {
     }>;
     getActiveSession(userId: string): Promise<({
         case: {
-            id: string;
-            caseNumber: string;
             caseType: import("@prisma/client").$Enums.CaseType;
+            caseNumber: string;
+            id: string;
             status: import("@prisma/client").$Enums.CaseStatus;
         };
     } & {
-        id: string;
         language: string;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
         userId: string;

@@ -12,10 +12,11 @@ export interface OrchestratorResponse {
   caseStatus?: string;
   timelineEvent?: { type: string; title: string; description: string };
   suggestedDocuments?: string[];
+  appointmentDetails?: { type: string; scheduledAt: string };
   phase?: OnboardingPhase;
 }
 
-export type OnboardingPhase = 'MEMBER_PROFILE' | 'LEGAL_PROFILE' | 'DOCUMENTS' | 'REVIEW' | 'ACTIVE';
+export type OnboardingPhase = 'MEMBER_PROFILE' | 'LEGAL_PROFILE' | 'CASE_CREATION' | 'DOCUMENTS' | 'REVIEW' | 'ACTIVE';
 
 export interface OnboardingContext {
   phase: OnboardingPhase;
@@ -70,6 +71,8 @@ function detectPhase(ctx: Partial<OnboardingContext>): OnboardingPhase {
     (f) => legalProfile[f as keyof typeof legalProfile],
   );
   if (!legalComplete) return 'LEGAL_PROFILE';
+
+  if (ctx.caseType === 'GENERAL_CONSULTATION') return 'CASE_CREATION';
 
   const uploaded = ctx.uploadedDocuments || [];
   const docsComplete = REQUIRED_DOCUMENTS.every((d) => uploaded.includes(d));
@@ -165,6 +168,7 @@ MISSING DOCUMENTS: ${missingDocs.join(', ') || 'None'}
 PHASE RULES (follow strictly):
 - MEMBER_PROFILE phase: Collect missing basic profile fields one at a time. Set nextAction="SAVE_PROFILE_FIELD" and fieldToSave.
 - LEGAL_PROFILE phase: Collect missing legal and immigration fields one at a time. Set nextAction="SAVE_PROFILE_FIELD" and fieldToSave.
+- CASE_CREATION phase: Ask the user what kind of case they want to start (e.g. Visa Processing, Work Permit). Set nextAction="UPDATE_CASE_TYPE".
 - DOCUMENTS phase: Profiles are complete. Guide the user to upload specific missing documents. Set nextAction="UPLOAD_DOCUMENT" and suggestedDocuments to the missing doc types.
 - REVIEW phase: All data collected. Summarise the case and inform the user their legal team will contact them.
 - ACTIVE phase: Answer any questions regarding the immigration process, terminology, and FAQs using the provided KNOWLEDGE BASE. If the user asks about court dates or appointments, refer to the provided context. If you don't know the answer, tell the user to ask their assigned lawyer. Keep your tone professional, empathetic, and clear.
@@ -429,6 +433,12 @@ ${this.knowledgeBase}`;
             nextAction: 'NONE',
             phase: 'LEGAL_PROFILE',
           };
+        } else if (nextPhase === 'CASE_CREATION') {
+          return {
+            message: `Your profiles are complete. What type of immigration case can I help you start today? (e.g., Visa Processing, Work Permit, Citizenship)`,
+            nextAction: 'NONE',
+            phase: 'CASE_CREATION',
+          };
         } else if (nextPhase === 'DOCUMENTS') {
           return {
             message: `Your profiles are complete. Next, we need you to upload some required documents.`,
@@ -479,12 +489,33 @@ ${this.knowledgeBase}`;
           message: `Please provide ${friendly} (${remaining} field${remaining !== 1 ? 's' : ''} remaining).`,
           nextAction: 'NONE',
           phase: phase,
-          timelineEvent: {
-            type: 'PROFILE_UPDATE',
-            title: 'Profile Screening',
-            description: `Collecting required profile information.`,
-          },
+      };
+    }
+
+    if (phase === 'CASE_CREATION') {
+      const lowerMsg = message.toLowerCase().trim();
+      let detectedType = '';
+      if (lowerMsg.includes('visa')) detectedType = 'VISA_PROCESSING';
+      else if (lowerMsg.includes('work')) detectedType = 'WORK_PERMIT';
+      else if (lowerMsg.includes('student') || lowerMsg.includes('study')) detectedType = 'STUDY_PERMIT';
+      else if (lowerMsg.includes('family')) detectedType = 'FAMILY_SPONSORSHIP';
+      else if (lowerMsg.includes('citizen')) detectedType = 'CITIZENSHIP';
+      
+      if (detectedType) {
+        return {
+          message: `Great, I will set up a ${detectedType.replace('_', ' ')} case for you. Let's proceed.`,
+          nextAction: 'UPDATE_CASE_TYPE',
+          fieldToSave: { field: 'caseType', value: detectedType },
+          phase: 'CASE_CREATION',
         };
+      } else {
+        return {
+          message: `I can help you with Visa Processing, Work Permits, Study Permits, Family Sponsorship, or Citizenship. Which one do you need?`,
+          nextAction: 'NONE',
+          phase: 'CASE_CREATION',
+          options: ['Visa Processing', 'Work Permit', 'Study Permit', 'Citizenship'],
+        };
+      }
     }
 
     if (phase === 'DOCUMENTS') {
@@ -544,8 +575,30 @@ ${this.knowledgeBase}`;
       };
     }
 
-    // ACTIVE phase — general orchestration and FAQ
     const lowerMsg = message.toLowerCase().trim();
+    
+    if (lowerMsg.includes('schedule') || lowerMsg.includes('consultation') || lowerMsg.includes('appointment')) {
+      if (lowerMsg.includes('initial') || lowerMsg.includes('follow-up')) {
+         const type = lowerMsg.includes('follow-up') ? 'FOLLOW_UP' : 'CONSULTATION';
+         const date = new Date();
+         date.setDate(date.getDate() + 2);
+         date.setHours(10, 0, 0, 0);
+         return {
+           message: `I've initiated the scheduling process for your ${type.replace('_', ' ')}. It is tentatively set for ${date.toLocaleDateString()} at 10:00 AM.`,
+           nextAction: 'SCHEDULE_CONSULTATION',
+           appointmentDetails: { type, scheduledAt: date.toISOString() },
+           phase: 'ACTIVE',
+         };
+      } else {
+        return {
+          message: `I can help you schedule a consultation with your lawyer. Would you like an initial consultation or a follow-up?`,
+          options: ['Initial Consultation', 'Follow-up Consultation'],
+          nextAction: 'NONE',
+          phase: 'ACTIVE',
+        };
+      }
+    }
+
     if (lowerMsg.includes('court') || lowerMsg.includes('hearing')) {
        return {
          message: `I can help you check your court dates. Based on our records, any upcoming court dates will be listed in your portal. If you need more details, please ask your lawyer.`,

@@ -11,12 +11,12 @@ export declare class TimelineService {
                 caseNumber: string;
             };
         } & {
+            title: string;
+            description: string | null;
             id: string;
             createdAt: Date;
             metadata: import("@prisma/client/runtime/library").JsonValue | null;
             eventType: import("@prisma/client").$Enums.EventType;
-            title: string;
-            description: string | null;
             actorType: string;
             actorId: string | null;
             caseId: string;

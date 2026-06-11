@@ -71,12 +71,12 @@ export declare class AppointmentsController {
                 name: string;
             };
         } & {
+            caseType: import("@prisma/client").$Enums.CaseType;
+            caseNumber: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             userId: string;
-            caseNumber: string;
-            caseType: import("@prisma/client").$Enums.CaseType;
             status: import("@prisma/client").$Enums.CaseStatus;
             priority: import("@prisma/client").$Enums.Priority;
             riskLevel: import("@prisma/client").$Enums.RiskLevel;

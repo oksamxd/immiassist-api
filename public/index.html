@@ -833,6 +833,12 @@
                 const cases = await res.json();
                 const list = Array.isArray(cases) ? cases : (cases.data || []);
                 
+                if (state.user.role === 'MEMBER' && list.length === 0) {
+                    // Auto-start the onboarding flow if user has no cases
+                    await startNewCase();
+                    return;
+                }
+                
                 // Build Dashboard Cards
                 const grid = document.getElementById('dashboard-grid');
                 if (state.user.role === 'MEMBER') {
@@ -959,22 +965,19 @@
         }
 
         async function startNewCase() {
-            // Placeholder for Case Creation Wizard (Phase 5)
-            // For now, we'll auto-create and select a new case to demonstrate the flow
             try {
                 const createRes = await fetch(`${API}/cases`, {
                     method: 'POST',
                     headers: {'Authorization': `Bearer ${state.token}`, 'Content-Type': 'application/json'},
-                    body: JSON.stringify({ caseType: 'VISA_PROCESSING' }) // In Phase 5 this will be selectable
+                    body: JSON.stringify({ caseType: 'GENERAL_CONSULTATION' })
                 });
                 if (createRes.ok) {
                     const newCase = await createRes.json();
-                    alert('New Case Created! Opening case context...');
                     await selectCase(newCase);
                     loadCases(); // reload dashboard list in background
                 } else {
                     const err = await createRes.text();
-                    alert('Failed to create case: ' + err);
+                    alert('Failed to start case flow: ' + err);
                 }
             } catch (e) {
                 console.error('startNewCase error:', e);
@@ -1310,7 +1313,7 @@
                             });
                             if (timeRes.ok) {
                                 const events = await timeRes.json();
-                                renderTimeline(events);
+                                renderTimeline(events.events || []);
                             }
                         }
                     }
@@ -1360,15 +1363,6 @@
                     
                     if (parsed.suggestedDocuments && parsed.suggestedDocuments.length > 0) {
                         state.expectedDocType = parsed.suggestedDocuments[0];
-                    }
-                    
-                    // If AI decided to change state or create event based on intent
-                    if (parsed.timelineEvent) {
-                        renderTimeline([{ 
-                            ...parsed.timelineEvent, 
-                            createdAt: new Date().toISOString(),
-                            eventType: parsed.timelineEvent.type 
-                        }]);
                     }
                     
                     if (parsed.nextAction === 'SAVE_PROFILE_FIELD' || parsed.nextAction === 'ADVANCE_PHASE') {
