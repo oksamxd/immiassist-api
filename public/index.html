@@ -16,6 +16,7 @@
             document.write('<script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"><\/script>');
         }
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
@@ -1013,16 +1014,21 @@
                                 else if (step.type === 'documents') content = `📁 **Documents to Keep Ready:**\n\n${step.text}`;
                                 else if (step.type === 'questions') {
                                     content = `❓ **Likely Questions:**\n\n`;
-                                    step.questions.forEach(q => { content += `- Q: ${q.q}\n  *Hint: ${q.hint}*\n`; });
+                                    if (step.questions) {
+                                        step.questions.forEach(q => { content += `- Q: ${q.q}\n  *Hint: ${q.hint}*\n`; });
+                                    }
                                 }
                                 else if (step.type === 'dos_donts') {
-                                    content = `✅ **Do's:**\n${step.dos.map(d=>'- '+d).join('\n')}\n\n❌ **Don'ts:**\n${step.donts.map(d=>'- '+d).join('\n')}`;
+                                    content = `✅ **Do's:**\n${(step.dos||[]).map(d=>'- '+d).join('\n')}\n\n❌ **Don'ts:**\n${(step.donts||[]).map(d=>'- '+d).join('\n')}`;
                                 }
                                 else content = `💪 **Final Note:**\n\n${step.text}`;
                                 
                                 appendMessage('assistant', content);
                             }, idx * 2500); // Sequence it out
                         });
+                        setTimeout(() => {
+                            appendMessage('assistant', `<button class="btn btn-secondary" onclick="document.getElementById('case-view-container').style.display='none'; document.getElementById('dashboard-view-container').style.display='block';">⬅️ Return to Dashboard</button>`);
+                        }, plan.steps.length * 2500 + 1000);
                     }
                 } else {
                     alert('Failed to start prep');
