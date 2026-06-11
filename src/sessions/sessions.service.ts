@@ -312,8 +312,15 @@ export class SessionsService {
           }
         });
 
-        // Append the actual dynamic time to the AI's response so the user sees it
-        orchestrationResult.message += ` I've successfully booked this for ${finalScheduledAt.toLocaleString()} based on your lawyer's availability.`;
+        const lawyer = await this.prisma.lawyer.findUnique({ 
+            where: { id: caseRecord.assignedLawyerId },
+            include: { user: { select: { name: true } } }
+        });
+        
+        const lawyerName = lawyer?.user?.name || 'your assigned lawyer';
+        
+        // Append the actual dynamic time and lawyer name to the AI's response so the user sees it
+        orchestrationResult.message = `Great! I've officially scheduled your consultation. Your appointment is set for **${finalScheduledAt.toLocaleString()}** with **${lawyerName}**.`;
 
         await this.prisma.case.update({
           where: { id: session.caseId },
@@ -324,13 +331,12 @@ export class SessionsService {
             caseId: session.caseId,
             eventType: 'APPOINTMENT_SCHEDULED',
             title: 'Consultation Scheduled',
-            description: `A ${type.replace('_', ' ')} has been scheduled for ${finalScheduledAt.toLocaleString()}.`,
+            description: `A ${type.replace('_', ' ')} has been scheduled for ${finalScheduledAt.toLocaleString()} with ${lawyerName}.`,
             actorType: 'SYSTEM',
           }
         });
         this.realtime.notifyTimelineUpdate(session.caseId, { event: 'APPOINTMENT_SCHEDULED' });
 
-        const lawyer = await this.prisma.lawyer.findUnique({ where: { id: caseRecord.assignedLawyerId } });
         if (lawyer) {
            await this.prisma.notification.create({
              data: {

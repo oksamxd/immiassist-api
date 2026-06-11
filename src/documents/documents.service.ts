@@ -167,6 +167,7 @@ export class DocumentsService {
     const updated = await this.prisma.document.update({
       where: { id },
       data: { verificationStatus: status, notes },
+      include: { case: true }
     });
 
     await this.prisma.caseEvent.create({
@@ -180,6 +181,8 @@ export class DocumentsService {
         metadata: { documentId: id, status, docType: doc.documentType },
       },
     });
+
+
 
     // Notify the member
     const caseRecord = await this.prisma.case.findUnique({ where: { id: doc.caseId } });

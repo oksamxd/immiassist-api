@@ -887,6 +887,28 @@
                         }
                     } catch(e) {}
 
+                    // Fetch Notifications for Members
+                    let notificationsHtml = '';
+                    try {
+                        const notifRes = await fetch(`${API}/notifications`, {
+                            headers: {'Authorization': `Bearer ${state.token}`}
+                        });
+                        if (notifRes.ok) {
+                            const notifs = await notifRes.json();
+                            if (notifs.length > 0) {
+                                notificationsHtml = notifs.map(n => `
+                                    <div style="padding: 0.5rem 0; border-bottom: 1px solid var(--border)">
+                                        <strong>${n.title}</strong><br>
+                                        <small style="color:var(--text-muted)">${new Date(n.createdAt).toLocaleString()}</small><br>
+                                        <div style="font-size:0.875rem; margin-top:0.25rem;">${n.message}</div>
+                                    </div>
+                                `).join('');
+                            } else {
+                                notificationsHtml = '<p>No new notifications.</p>';
+                            }
+                        }
+                    } catch(e) {}
+
                     grid.innerHTML = `
                         <div class="card glass-panel" style="padding: 1.5rem">
                             <h3 style="margin-bottom: 1rem; color: #818cf8"><i data-lucide="user"></i> Context</h3>
@@ -901,13 +923,12 @@
                             <p><strong>Employer:</strong> ${state.user.legalProfile?.currentEmployer || 'N/A'}</p>
                         </div>
                         <div class="card glass-panel" style="padding: 1.5rem">
-                            <h3 style="margin-bottom: 1rem; color: #818cf8"><i data-lucide="folder"></i> Case Summary</h3>
-                            <p><strong>Active Cases:</strong> ${list.length}</p>
-                            ${list.length > 0 ? `<button class="btn btn-secondary" style="margin-top:1rem" onclick="selectCaseId('${list[0].id}')">View Latest Case</button>` : '<p>No active cases.</p>'}
-                        </div>
-                        <div class="card glass-panel" style="padding: 1.5rem">
                             <h3 style="margin-bottom: 1rem; color: #f59e0b"><i data-lucide="scale"></i> Upcoming Court Dates</h3>
                             ${courtDatesHtml}
+                        </div>
+                        <div class="card glass-panel" style="padding: 1.5rem">
+                            <h3 style="margin-bottom: 1rem; color: #f59e0b"><i data-lucide="bell"></i> Notifications</h3>
+                            ${notificationsHtml}
                         </div>
                     `;
                     document.getElementById('btn-ten-min').style.display = 'inline-flex';
@@ -1196,6 +1217,7 @@
                 
                 msgDiv.innerHTML = htmlContent;
 
+                let optionsHtml = '';
                 if (options && options.length > 0) {
                     const optDiv = document.createElement('div');
                     optDiv.className = 'message-options';
@@ -1339,7 +1361,7 @@
                                 </div>
                                 
                                 <div class="section-title" style="margin-top:1rem"><i data-lucide="clock"></i> Case Timeline</div>
-                                <div class="timeline" id="timeline-container">
+                                <div class="timeline" id="timeline-list">
                                 </div>
                             `;
                             safeCreateIcons();
@@ -1499,6 +1521,7 @@
                 const chatContainer = document.getElementById('chat-messages');
                 if (chatContainer && session.messages) {
                     chatContainer.innerHTML = '';
+                    let latestAssistantMsg = null;
                     session.messages.forEach(m => {
                         if (m.role !== 'system') {
                             let content = m.content;
@@ -1509,10 +1532,19 @@
                                     content = p.message || m.content;
                                     options = p.options || options;
                                 } catch(e) {}
+                                latestAssistantMsg = content;
                             }
                             appendMessage(m.role, content, options);
                         }
                     });
+
+                    // Optional TTS for the very latest message if it's new
+                    // In a real app we'd track last message ID to avoid re-speaking
+                    // Here we will just play it if we specifically requested a refresh after sending
+                    if (latestAssistantMsg && window.lastPlayedMsg !== latestAssistantMsg) {
+                        window.lastPlayedMsg = latestAssistantMsg;
+                        playSynthesizedSpeech(latestAssistantMsg);
+                    }
                 }
             }
         }
@@ -1528,7 +1560,8 @@
             listDiv.innerHTML = '<p>Loading appointments...</p>';
 
             try {
-                const res = await fetch(`${API}/appointments`, { headers: {'Authorization': `Bearer ${state.token}`} });
+                const endpoint = state.user.role === 'LAWYER' ? '/appointments/lawyer' : '/appointments/upcoming'; 
+                const res = await fetch(`${API}${endpoint}`, { headers: {'Authorization': `Bearer ${state.token}`} });
                 if (res.ok) {
                     const data = await res.json();
                     if (data.length === 0) {
@@ -1578,7 +1611,8 @@
             listDiv.innerHTML = '<p>Loading court dates...</p>';
 
             try {
-                const res = await fetch(`${API}/court-dates/upcoming`, { headers: {'Authorization': `Bearer ${state.token}`} });
+                const endpoint = state.user.role === 'LAWYER' ? '/court-dates/lawyer' : '/court-dates/upcoming';
+                const res = await fetch(`${API}${endpoint}`, { headers: {'Authorization': `Bearer ${state.token}`} });
                 if (res.ok) {
                     const data = await res.json();
                     if (data.length === 0) {
