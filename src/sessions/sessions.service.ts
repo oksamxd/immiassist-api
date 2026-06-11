@@ -279,18 +279,38 @@ export class SessionsService {
     // Handle SCHEDULE_CONSULTATION
     if (orchestrationResult.nextAction === 'SCHEDULE_CONSULTATION' && orchestrationResult.appointmentDetails) {
       const { type, scheduledAt } = orchestrationResult.appointmentDetails;
-      const caseRecord = await this.prisma.case.findUnique({ where: { id: session.caseId } });
+      const caseRecord = await this.prisma.case.findUnique({ where: { id: session.caseId }, include: { member: true } });
       
       if (caseRecord?.assignedLawyerId) {
+        const existingAppts = await this.prisma.appointment.findMany({
+           where: { lawyerId: caseRecord.assignedLawyerId, status: { not: 'CANCELLED' } }
+        });
+        
+        let targetDate = new Date();
+        targetDate.setDate(targetDate.getDate() + 1);
+        targetDate.setHours(10, 0, 0, 0);
+
+        for (let i = 0; i < 5; i++) {
+           const conflict = existingAppts.find(a => Math.abs(a.scheduledAt.getTime() - targetDate.getTime()) < 3600000);
+           if (!conflict) break;
+           targetDate.setHours(targetDate.getHours() + 1);
+        }
+
+        const finalScheduledAt = targetDate;
+
         await this.prisma.appointment.create({
           data: {
             caseId: session.caseId,
             lawyerId: caseRecord.assignedLawyerId,
             appointmentType: type as any,
-            scheduledAt: new Date(scheduledAt),
+            scheduledAt: finalScheduledAt,
             status: 'SCHEDULED',
           }
         });
+
+        // Append the actual dynamic time to the AI's response so the user sees it
+        orchestrationResult.message += ` I've successfully booked this for ${finalScheduledAt.toLocaleString()} based on your lawyer's availability.`;
+
         await this.prisma.case.update({
           where: { id: session.caseId },
           data: { status: 'INTAKE_IN_PROGRESS' }
@@ -300,11 +320,24 @@ export class SessionsService {
             caseId: session.caseId,
             eventType: 'APPOINTMENT_SCHEDULED',
             title: 'Consultation Scheduled',
-            description: `A ${type.replace('_', ' ')} has been scheduled.`,
+            description: `A ${type.replace('_', ' ')} has been scheduled for ${finalScheduledAt.toLocaleString()}.`,
             actorType: 'SYSTEM',
           }
         });
         this.realtime.notifyTimelineUpdate(session.caseId, { event: 'APPOINTMENT_SCHEDULED' });
+
+        const lawyer = await this.prisma.lawyer.findUnique({ where: { id: caseRecord.assignedLawyerId } });
+        if (lawyer) {
+           await this.prisma.notification.create({
+             data: {
+               userId: lawyer.userId,
+               caseId: session.caseId,
+               type: 'CONSULTATION_SCHEDULED',
+               title: '📅 New Consultation Booked',
+               message: `You have a new consultation scheduled on ${finalScheduledAt.toLocaleString()} for case ${caseRecord.caseNumber}. Context gathered: ${JSON.stringify(orchestrationResult.aiContext || {})}`,
+             }
+           });
+        }
       } else {
         await this.prisma.case.update({
           where: { id: session.caseId },
@@ -342,6 +375,8 @@ export class SessionsService {
       });
       this.realtime.notifyTimelineUpdate(session.caseId, { event: orchestrationResult.timelineEvent.type });
     }
+
+    this.realtime.notifyChatMessage(session.caseId, { messages: [userMsg, aiMsg] });
 
     return {
       userMessage: { role: 'user', content: message },
@@ -393,6 +428,7 @@ export class SessionsService {
       },
     });
     this.realtime.notifyTimelineUpdate(caseId, { event: 'CASE_NOTE_ADDED' });
+    this.realtime.notifyChatMessage(caseId, { messages: [legalMessage] });
 
     // Notify the case member
     const caseRecord = await this.prisma.case.findUnique({ where: { id: caseId } });

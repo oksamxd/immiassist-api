@@ -1448,10 +1448,43 @@
                 refreshContextPanel();
             });
 
+            window.socket.on('chat.message', (payload) => {
+                console.log('Realtime chat update', payload);
+                refreshChatMessages();
+            });
+
             window.socket.on('case.updated', (payload) => {
                 console.log('Realtime case update', payload);
                 loadCases();
             });
+        }
+
+        async function refreshChatMessages() {
+            if (!state.caseId) return;
+            const res = await fetch(`${API}/sessions/case/${state.caseId}/active`, {
+                headers: {'Authorization': `Bearer ${state.token}`}
+            });
+            if (res.ok) {
+                const session = await res.json();
+                const chatContainer = document.getElementById('chat-messages');
+                if (chatContainer && session.messages) {
+                    chatContainer.innerHTML = '';
+                    session.messages.forEach(m => {
+                        if (m.role !== 'system') {
+                            let content = m.content;
+                            let options = m.options;
+                            if (m.role === 'assistant') {
+                                try {
+                                    const p = JSON.parse(m.content);
+                                    content = p.message || m.content;
+                                    options = p.options || options;
+                                } catch(e) {}
+                            }
+                            appendMessage(m.role, content, options);
+                        }
+                    });
+                }
+            }
         }
     </script>
 </body>
