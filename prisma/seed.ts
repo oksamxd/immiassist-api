@@ -230,6 +230,68 @@ async function main() {
         notes: 'Master Calendar Hearing for H-1B transition review.',
       },
     });
+
+    // ── Generate 5 additional random cases ─────────────────────────────
+    const caseTypes = ['WORK_PERMIT', 'FAMILY_SPONSORSHIP', 'DEPORTATION', 'CITIZENSHIP', 'STUDY_PERMIT'];
+    const summaries = [
+      'Applying for an employment authorization document (EAD) based on pending asylum.',
+      'Spousal sponsorship for permanent residency (green card).',
+      'Defending against deportation proceedings due to visa overstay.',
+      'Naturalization application after 5 years of permanent residency.',
+      'F-1 student visa application for university enrollment in Fall 2026.'
+    ];
+
+    for (let i = 0; i < 5; i++) {
+      const c = await prisma.case.upsert({
+        where: { caseNumber: `IMM-DEMO-00${i+2}` },
+        update: {},
+        create: {
+          caseNumber: `IMM-DEMO-00${i+2}`,
+          userId: member2User.id,
+          caseType: caseTypes[i],
+          status: 'ACTIVE',
+          priority: i % 2 === 0 ? 'HIGH' : 'NORMAL',
+          riskLevel: i % 3 === 0 ? 'HIGH' : 'LOW',
+          assignedLawyerId: lawyerUser.id,
+          assignedLegalAssociateId: associateUser.id,
+          summary: summaries[i],
+        },
+      });
+
+      // Appt
+      const tAppt = new Date(Date.now() + (i + 2) * 24 * 60 * 60 * 1000); // i+2 days from now
+      await prisma.appointment.upsert({
+        where: { id: `demo-appt-00${i+2}` },
+        update: { scheduledAt: tAppt },
+        create: {
+          id: `demo-appt-00${i+2}`,
+          caseId: c.id,
+          lawyerId: lawyerRecord.id,
+          appointmentType: i % 2 === 0 ? 'CONSULTATION' : 'FOLLOW_UP',
+          scheduledAt: tAppt,
+          status: 'SCHEDULED',
+          notes: `Discussion for ${caseTypes[i]}`,
+        },
+      });
+
+      // Court Date
+      if (i % 2 === 0) {
+        const tCourt = new Date(Date.now() + (i + 15) * 24 * 60 * 60 * 1000); 
+        await prisma.courtDate.upsert({
+          where: { id: `demo-court-00${i+2}` },
+          update: { date: tCourt },
+          create: {
+            id: `demo-court-00${i+2}`,
+            caseId: c.id,
+            lawyerId: lawyerRecord.id,
+            date: tCourt,
+            location: `Court Room ${100 + i}`,
+            status: 'SCHEDULED',
+            notes: `Hearing for ${caseTypes[i]}`,
+          },
+        });
+      }
+    }
   }
 
   console.log('✅ Seed complete!');

@@ -941,8 +941,14 @@
                             <h3 style="margin-bottom: 1rem; color: #818cf8"><i data-lucide="briefcase"></i> Caseload</h3>
                             <p><strong>Active Cases:</strong> ${list.length}</p>
                             ${list.map(c => `
-                                <div style="padding: 0.5rem 0; border-bottom: 1px solid var(--border)">
-                                    <a href="#" onclick="selectCaseId('${c.id}')">${c.caseNumber || 'Unnamed Case'}</a> - ${c.status}
+                                <div style="padding: 0.75rem 0; border-bottom: 1px solid var(--border)">
+                                    <div style="display:flex; justify-content:space-between;">
+                                        <a href="#" onclick="selectCaseId('${c.id}')" style="font-weight:600;">${c.caseNumber || 'Unnamed Case'}</a>
+                                        <span style="font-size:0.8rem; color:var(--text-muted);">${c.status}</span>
+                                    </div>
+                                    <div style="font-size:0.85rem; color:var(--text-muted); margin-top:0.25rem;">
+                                        ${c.summary || c.caseType}
+                                    </div>
                                 </div>
                             `).join('')}
                         </div>
@@ -1532,12 +1538,17 @@
                     let html = '<div style="display:flex; flex-direction:column; gap:1rem;">';
                     data.forEach(appt => {
                         const date = new Date(appt.scheduledAt).toLocaleString();
+                        const caseNum = appt.case ? appt.case.caseNumber : 'Unknown Case';
+                        const reason = appt.case ? (appt.case.summary || appt.case.caseType) : 'No reason provided';
+                        const memberName = appt.case && appt.case.member ? appt.case.member.name : 'Unknown Member';
                         html += `
                             <div class="glass" style="padding: 1.5rem;">
-                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                                     <div>
                                         <h3 style="margin-bottom:0.25rem;">${appt.appointmentType.replace(/_/g, ' ')}</h3>
-                                        <div style="font-size:0.875rem; color:var(--text-muted);"><i data-lucide="calendar"></i> ${date}</div>
+                                        <div style="font-size:0.875rem; color:var(--text-muted); margin-bottom: 0.5rem;"><i data-lucide="calendar"></i> ${date}</div>
+                                        <div style="font-size:0.9rem; font-weight: 500;">Case: ${caseNum} - ${memberName}</div>
+                                        <div style="font-size:0.875rem; color:var(--text-muted); margin-top: 0.25rem;">Reason: ${reason}</div>
                                     </div>
                                     <span class="badge primary">${appt.status}</span>
                                 </div>
@@ -1577,12 +1588,17 @@
                     let html = '<div style="display:flex; flex-direction:column; gap:1rem;">';
                     data.forEach(cd => {
                         const date = new Date(cd.date).toLocaleDateString();
+                        const caseNum = cd.case ? cd.case.caseNumber : 'Unknown Case';
+                        const reason = cd.case ? (cd.case.summary || cd.case.caseType) : 'No reason provided';
+                        const memberName = cd.case && cd.case.member ? cd.case.member.name : 'Unknown Member';
                         html += `
                             <div class="glass" style="padding: 1.5rem;">
-                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                                     <div>
                                         <h3 style="margin-bottom:0.25rem;">${cd.location || 'Location TBD'}</h3>
-                                        <div style="font-size:0.875rem; color:var(--text-muted);"><i data-lucide="scale"></i> ${date}</div>
+                                        <div style="font-size:0.875rem; color:var(--text-muted); margin-bottom: 0.5rem;"><i data-lucide="scale"></i> ${date}</div>
+                                        <div style="font-size:0.9rem; font-weight: 500;">Case: ${caseNum} - ${memberName}</div>
+                                        <div style="font-size:0.875rem; color:var(--text-muted); margin-top: 0.25rem;">Reason: ${reason}</div>
                                     </div>
                                     <span class="badge warning">${cd.status}</span>
                                 </div>
