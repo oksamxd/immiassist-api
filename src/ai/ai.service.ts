@@ -539,48 +539,27 @@ ${this.knowledgeBase}`;
     }
 
     if (phase === 'DOCUMENTS') {
-      const missingDocs = REQUIRED_DOCUMENTS.filter(
-        (d) => !ctx.uploadedDocuments?.includes(d),
-      );
-      const docLabels: Record<string, string> = {
-        PASSPORT: 'Passport (bio-data page)',
-        VISA: 'Current visa stamp or approval notice',
-        I797: 'I-797 Approval Notice',
-        I20: 'Form I-20',
-        EAD: 'EAD Card',
-      };
-      const nextDoc = missingDocs[0];
-
       const lowerMsg = message.toLowerCase().trim();
 
-      if (lowerMsg.includes('help')) {
+      if (lowerMsg.includes('uploaded') || lowerMsg.includes('here it is') || ctx.uploadedDocuments?.length > 0) {
         return {
-          message: `If you are having trouble finding or uploading your **${docLabels[nextDoc] || nextDoc}**, don't worry. Your legal team will assist you with this later. For now, please try to upload any other available documents, or contact support.`,
-          nextAction: 'NONE',
-          phase: 'DOCUMENTS',
-          options: ['I have uploaded it', 'Contact support'],
-        };
-      }
-
-      if (lowerMsg.includes('uploaded')) {
-        return {
-          message: `I don't see the **${docLabels[nextDoc] || nextDoc}** in our system yet. Please ensure the file was uploaded successfully using the upload area. If you're having trouble, let me know.`,
-          nextAction: 'UPLOAD_DOCUMENT',
-          phase: 'DOCUMENTS',
-          options: ['I need help with this document'],
+          message: `Thank you for uploading the document. Based on your profile and this Legal Notice to Depart, I have logged this as a high-priority incident and forwarded everything to your assigned legal team for immediate review. Let's schedule a consultation to discuss the next steps in detail.`,
+          nextAction: 'SCHEDULE_CONSULTATION',
+          phase: 'ACTIVE',
+          appointmentDetails: { type: 'CONSULTATION', scheduledAt: new Date(Date.now() + 86400000).toISOString() }
         };
       }
 
       return {
-        message: `Your profile is complete. Please upload your **${docLabels[nextDoc] || nextDoc}** to proceed. Use the upload button below.`,
+        message: `Your profile is complete. Please upload your Legal Notice to Depart or any relevant evidence to proceed. Use the upload button below.`,
         nextAction: 'UPLOAD_DOCUMENT',
-        suggestedDocuments: missingDocs,
+        suggestedDocuments: ['NOTICE_TO_DEPART'],
         phase: 'DOCUMENTS',
         options: ['I have uploaded it', 'I need help with this document'],
         timelineEvent: {
           type: 'DOCUMENT_REQUESTED',
-          title: 'Document Upload Required',
-          description: `Missing: ${missingDocs.map((d) => docLabels[d] || d).join(', ')}`,
+          title: 'Legal Notice Upload Required',
+          description: `Please upload the Notice to Depart for analysis.`,
         },
       };
     }
