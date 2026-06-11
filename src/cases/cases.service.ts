@@ -40,6 +40,13 @@ export class CasesService {
   }
 
   async create(userId: string, dto: CreateCaseDto) {
+    // For demo purposes: randomly fetch a lawyer and legal associate
+    const lawyers = await this.prisma.lawyer.findMany();
+    const associates = await this.prisma.legalAssociate.findMany();
+    
+    const randomLawyer = lawyers.length > 0 ? lawyers[Math.floor(Math.random() * lawyers.length)] : null;
+    const randomAssociate = associates.length > 0 ? associates[Math.floor(Math.random() * associates.length)] : null;
+
     const caseRecord = await this.prisma.case.create({
       data: {
         caseNumber: this.generateCaseNumber(),
@@ -48,6 +55,8 @@ export class CasesService {
         status: 'NEW',
         priority: (dto.priority as any) || 'MEDIUM',
         summary: dto.summary,
+        assignedLawyerId: randomLawyer ? randomLawyer.id : undefined,
+        assignedLegalAssociateId: randomAssociate ? randomAssociate.id : undefined,
         detail: (dto.visaCategory || dto.issueType || dto.destinationCountry || dto.notes)
           ? {
               create: {
