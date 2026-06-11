@@ -155,6 +155,26 @@
                     </div>
                 </div>
 
+                <!-- Appointments View -->
+                <div id="appointments-view-container" style="display:none; padding: 2rem; overflow-y:auto; height:100%;">
+                    <div style="margin-bottom: 2rem;">
+                        <h2 style="font-size: 1.5rem; font-weight: 700;">Appointments</h2>
+                    </div>
+                    <div id="appointments-list">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Court Dates View -->
+                <div id="court-dates-view-container" style="display:none; padding: 2rem; overflow-y:auto; height:100%;">
+                    <div style="margin-bottom: 2rem;">
+                        <h2 style="font-size: 1.5rem; font-weight: 700;">Court Dates</h2>
+                    </div>
+                    <div id="court-dates-list">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
                 <!-- Case View -->
                 <div id="case-view-container" style="display:flex; flex-direction:column; height:100%;">
                     <header class="top-header">
@@ -805,8 +825,8 @@
             } else if (state.user.role === 'LAWYER') {
                 links = `
                     <div class="nav-item active" onclick="loadCases()" style="cursor:pointer"><i data-lucide="briefcase"></i> Caseload</div>
-                    <div class="nav-item" style="cursor:pointer"><i data-lucide="calendar"></i> Appointments</div>
-                    <div class="nav-item" style="cursor:pointer"><i data-lucide="scale"></i> Court Dates</div>
+                    <div class="nav-item" onclick="loadAppointments()" style="cursor:pointer"><i data-lucide="calendar"></i> Appointments</div>
+                    <div class="nav-item" onclick="loadCourtDates()" style="cursor:pointer"><i data-lucide="scale"></i> Court Dates</div>
                 `;
             } else {
                 links = `
@@ -823,6 +843,8 @@
                 // Show dashboard, hide case
                 document.getElementById('dashboard-view-container').style.display = 'block';
                 document.getElementById('case-view-container').style.display = 'none';
+                document.getElementById('appointments-view-container').style.display = 'none';
+                document.getElementById('court-dates-view-container').style.display = 'none';
                 document.getElementById('right-panel-context').style.display = 'none';
                 document.getElementById('main-app-layout').style.gridTemplateColumns = '260px 1fr';
 
@@ -1042,8 +1064,10 @@
             try {
                 state.caseId = caseObj.id;
 
-                // Show Case View, hide dashboard
+                // Show Case View, hide others
                 document.getElementById('dashboard-view-container').style.display = 'none';
+                document.getElementById('appointments-view-container').style.display = 'none';
+                document.getElementById('court-dates-view-container').style.display = 'none';
                 document.getElementById('case-view-container').style.display = 'flex';
                 document.getElementById('right-panel-context').style.display = 'flex';
                 document.getElementById('main-app-layout').style.gridTemplateColumns = '260px 1fr 320px';
@@ -1484,6 +1508,95 @@
                         }
                     });
                 }
+            }
+        }
+        async function loadAppointments() {
+            document.getElementById('dashboard-view-container').style.display = 'none';
+            document.getElementById('case-view-container').style.display = 'none';
+            document.getElementById('court-dates-view-container').style.display = 'none';
+            document.getElementById('right-panel-context').style.display = 'none';
+            document.getElementById('appointments-view-container').style.display = 'block';
+            document.getElementById('main-app-layout').style.gridTemplateColumns = '260px 1fr';
+
+            const listDiv = document.getElementById('appointments-list');
+            listDiv.innerHTML = '<p>Loading appointments...</p>';
+
+            try {
+                const res = await fetch(`${API}/appointments`, { headers: {'Authorization': `Bearer ${state.token}`} });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.length === 0) {
+                        listDiv.innerHTML = '<p>No appointments booked.</p>';
+                        return;
+                    }
+                    let html = '<div style="display:flex; flex-direction:column; gap:1rem;">';
+                    data.forEach(appt => {
+                        const date = new Date(appt.scheduledAt).toLocaleString();
+                        html += `
+                            <div class="glass" style="padding: 1.5rem;">
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <div>
+                                        <h3 style="margin-bottom:0.25rem;">${appt.appointmentType.replace(/_/g, ' ')}</h3>
+                                        <div style="font-size:0.875rem; color:var(--text-muted);"><i data-lucide="calendar"></i> ${date}</div>
+                                    </div>
+                                    <span class="badge primary">${appt.status}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                    listDiv.innerHTML = html;
+                    safeCreateIcons();
+                } else {
+                    listDiv.innerHTML = '<p>Failed to load appointments.</p>';
+                }
+            } catch {
+                listDiv.innerHTML = '<p>Network error.</p>';
+            }
+        }
+
+        async function loadCourtDates() {
+            document.getElementById('dashboard-view-container').style.display = 'none';
+            document.getElementById('case-view-container').style.display = 'none';
+            document.getElementById('appointments-view-container').style.display = 'none';
+            document.getElementById('right-panel-context').style.display = 'none';
+            document.getElementById('court-dates-view-container').style.display = 'block';
+            document.getElementById('main-app-layout').style.gridTemplateColumns = '260px 1fr';
+
+            const listDiv = document.getElementById('court-dates-list');
+            listDiv.innerHTML = '<p>Loading court dates...</p>';
+
+            try {
+                const res = await fetch(`${API}/court-dates/upcoming`, { headers: {'Authorization': `Bearer ${state.token}`} });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.length === 0) {
+                        listDiv.innerHTML = '<p>No court dates scheduled.</p>';
+                        return;
+                    }
+                    let html = '<div style="display:flex; flex-direction:column; gap:1rem;">';
+                    data.forEach(cd => {
+                        const date = new Date(cd.date).toLocaleDateString();
+                        html += `
+                            <div class="glass" style="padding: 1.5rem;">
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <div>
+                                        <h3 style="margin-bottom:0.25rem;">${cd.location || 'Location TBD'}</h3>
+                                        <div style="font-size:0.875rem; color:var(--text-muted);"><i data-lucide="scale"></i> ${date}</div>
+                                    </div>
+                                    <span class="badge warning">${cd.status}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                    listDiv.innerHTML = html;
+                    safeCreateIcons();
+                } else {
+                    listDiv.innerHTML = '<p>Failed to load court dates.</p>';
+                }
+            } catch {
+                listDiv.innerHTML = '<p>Network error.</p>';
             }
         }
     </script>

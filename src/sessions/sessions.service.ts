@@ -342,6 +342,17 @@ export class SessionsService {
              }
            });
         }
+
+        // Notify the Member as well
+        await this.prisma.notification.create({
+          data: {
+            userId: caseRecord.userId,
+            caseId: session.caseId,
+            type: 'CONSULTATION_SCHEDULED',
+            title: '📅 Consultation Confirmed',
+            message: `Your consultation has been officially scheduled with your assigned lawyer for ${finalScheduledAt.toLocaleString()}.`,
+          }
+        });
       } else {
         await this.prisma.case.update({
           where: { id: session.caseId },
