@@ -352,7 +352,25 @@ ${this.knowledgeBase}`;
       .replace('{{visa_type}}', ctx.profile?.visaType || 'F1')
       .replace('{{language}}', ctx.profile?.preferredLanguage || 'English');
 
-    return this.callLlmJson(prompt, this.prompts.system);
+    const plan = await this.callLlmJson(prompt, this.prompts.system);
+    
+    if (!plan || !plan.steps) {
+      this.logger.warn('LLM failed to generate a valid 10-minute plan. Returning fallback.');
+      return {
+        steps: [
+          { type: 'calm', text: 'Take a deep breath. You are prepared and have all the necessary information.' },
+          { type: 'documents', text: '- Passport\n- Visa Approval Notice\n- Supporting evidence' },
+          { type: 'questions', questions: [
+            { q: 'What is the purpose of your visit?', hint: 'Keep it concise and factual.' },
+            { q: 'How long will you stay?', hint: 'Match the dates on your itinerary.' }
+          ]},
+          { type: 'dos_donts', dos: ['Answer only the question asked', 'Stay calm and polite'], donts: ['Offer unsolicited information', 'Argue with the officer'] },
+          { type: 'confidence', text: 'You have a strong case. Stay confident and you will be fine!' }
+        ]
+      };
+    }
+    
+    return plan;
   }
 
   async evaluateAirportRisk(ctx: OnboardingContext, issueType: string, contextString: string): Promise<any> {
