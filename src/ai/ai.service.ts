@@ -561,4 +561,72 @@ ${this.knowledgeBase}`;
       phase: 'ACTIVE',
     };
   }
+
+  async transcribeAudio(buffer: Buffer, filename: string): Promise<string> {
+    if (!this.apiKey) {
+      this.logger.warn('No API key configured for audio transcription. Returning dummy text.');
+      return "This is a simulated voice transcription because the API key is missing.";
+    }
+
+    try {
+      const formData = new FormData();
+      const blob = new Blob([buffer], { type: 'audio/webm' }); // Browsers usually record webm
+      formData.append('file', blob, filename || 'audio.webm');
+      formData.append('model', 'whisper-1');
+      formData.append('language', 'en');
+
+      const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`
+        },
+        body: formData as any
+      });
+
+      if (!response.ok) {
+        const err = await response.text();
+        this.logger.error(`Whisper API error: ${response.status} - ${err}`);
+        throw new Error('Failed to transcribe audio.');
+      }
+
+      const data = await response.json();
+      return data.text || '';
+    } catch (e) {
+      this.logger.error('Error transcribing audio:', e);
+      throw e;
+    }
+  }
+
+  async synthesizeSpeechStream(text: string): Promise<any> {
+    if (!this.apiKey) {
+      throw new Error('No API key configured for speech synthesis.');
+    }
+
+    try {
+      const response = await fetch('https://api.openai.com/v1/audio/speech', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'tts-1',
+          voice: 'alloy',
+          input: text,
+          response_format: 'mp3'
+        })
+      });
+
+      if (!response.ok) {
+        const err = await response.text();
+        this.logger.error(`Speech API error: ${response.status} - ${err}`);
+        throw new Error('Failed to synthesize speech.');
+      }
+
+      return response.body;
+    } catch (e) {
+      this.logger.error('Error synthesizing speech:', e);
+      throw e;
+    }
+  }
 }

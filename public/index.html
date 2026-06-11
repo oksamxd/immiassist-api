@@ -183,6 +183,10 @@
                         
                         <input type="text" id="chat-input" placeholder="Type a message to Jana AI..." onkeypress="handleKeyPress(event)">
                         
+                        <button class="btn-icon" id="mic-btn" onclick="toggleVoiceRecording()" title="Voice Input" style="color: var(--text-muted); transition: color 0.2s;">
+                            <i data-lucide="mic" style="width: 20px"></i>
+                        </button>
+                        
                         <button class="btn-icon primary" onclick="sendMessage()">
                             <i data-lucide="send" style="width: 20px"></i>
                         </button>
@@ -220,6 +224,10 @@
             sessionId: null,
             socket: null
         };
+
+        let mediaRecorder;
+        let audioChunks = [];
+        let isRecording = false;
 
         // Safe icon initializer — works even if Lucide CDN failed to load
         function safeCreateIcons() {
@@ -1187,6 +1195,89 @@
             sendMessage();
         }
 
+        async function toggleVoiceRecording() {
+            const micBtn = document.getElementById('mic-btn');
+            if (isRecording) {
+                // Stop recording
+                mediaRecorder.stop();
+                micBtn.style.color = 'var(--text-muted)';
+                isRecording = false;
+            } else {
+                // Start recording
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+
+                    mediaRecorder.ondataavailable = e => {
+                        if (e.data.size > 0) audioChunks.push(e.data);
+                    };
+
+                    mediaRecorder.onstop = async () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        await uploadAndTranscribe(audioBlob);
+                    };
+
+                    mediaRecorder.start();
+                    micBtn.style.color = '#ef4444'; // Red to indicate recording
+                    isRecording = true;
+                } catch (err) {
+                    alert('Could not access microphone: ' + err.message);
+                }
+            }
+        }
+
+        async function uploadAndTranscribe(blob) {
+            const input = document.getElementById('chat-input');
+            input.placeholder = "Transcribing...";
+            input.disabled = true;
+
+            const formData = new FormData();
+            formData.append('audio', blob, 'audio.webm');
+
+            try {
+                const res = await fetch(`${API}/voice/transcribe`, {
+                    method: 'POST',
+                    headers: {'Authorization': `Bearer ${state.token}`},
+                    body: formData
+                });
+                
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.success && data.text) {
+                        input.value = data.text;
+                        sendMessage(true); // true indicates it was voice
+                    }
+                } else {
+                    alert('Transcription failed');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Network error during transcription');
+            } finally {
+                input.placeholder = "Type a message to Jana AI...";
+                input.disabled = false;
+                input.focus();
+            }
+        }
+
+        async function playSynthesizedSpeech(text) {
+            try {
+                const encodedText = encodeURIComponent(text);
+                const res = await fetch(`${API}/voice/synthesize?text=${encodedText}`, {
+                    headers: {'Authorization': `Bearer ${state.token}`}
+                });
+                if (res.ok) {
+                    const blob = await res.blob();
+                    const audioUrl = URL.createObjectURL(blob);
+                    const audio = new Audio(audioUrl);
+                    audio.play();
+                }
+            } catch (err) {
+                console.error('Failed to play speech', err);
+            }
+        }
+
         async function refreshContextPanel() {
             try {
                 // Fetch latest profile to update context panel if member
@@ -1227,7 +1318,7 @@
             } catch(e) { console.error('Failed to refresh context', e); }
         }
 
-        async function sendMessage() {
+        async function sendMessage(wasVoice = false) {
             const input = document.getElementById('chat-input');
             const text = input.value.trim();
             if (!text || !state.sessionId) return;
@@ -1290,6 +1381,10 @@
                 if (typingInd) typingInd.style.display = 'none';
                 appendMessage('assistant', aiMsg, options);
                 
+                if (wasVoice === true && state.user.role === 'MEMBER') {
+                    playSynthesizedSpeech(aiMsg);
+                }
+
                 if (phaseAdvanced) {
                     await refreshContextPanel();
                 }
