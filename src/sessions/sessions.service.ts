@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma.service';
 import { AiService, OnboardingContext } from '../ai/ai.service';
 import { AuditService } from '../audit/audit.service';
 import { CreateSessionDto } from './dto/session.dto';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 
 const REQUIRED_PROFILE_FIELDS = [
   'passportNumber',
@@ -31,6 +32,7 @@ export class SessionsService {
     private readonly prisma: PrismaService,
     private readonly ai: AiService,
     private readonly audit: AuditService,
+    private readonly realtime: RealtimeGateway,
   ) {}
 
   private getRequiredDocs(caseType?: string): string[] {
@@ -269,6 +271,7 @@ export class SessionsService {
           metadata: { sessionId, phase: orchestrationResult.phase },
         },
       });
+      this.realtime.notifyTimelineUpdate(session.caseId, { event: orchestrationResult.timelineEvent.type });
     }
 
     return {
@@ -320,6 +323,7 @@ export class SessionsService {
         metadata: { type: 'legal_reply', sessionId: session.id },
       },
     });
+    this.realtime.notifyTimelineUpdate(caseId, { event: 'CASE_NOTE_ADDED' });
 
     // Notify the case member
     const caseRecord = await this.prisma.case.findUnique({ where: { id: caseId } });

@@ -1343,7 +1343,12 @@
             
             window.socket.on('timeline.updated', (payload) => {
                 console.log('Realtime timeline update', payload);
-                // In full implementation, incrementally update timeline UI
+                refreshContextPanel();
+            });
+
+            window.socket.on('case.updated', (payload) => {
+                console.log('Realtime case update', payload);
+                loadCases();
             });
         }
     </script>

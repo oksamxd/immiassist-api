@@ -336,7 +336,12 @@ ${this.knowledgeBase}`;
   }
 
   async generateTenMinutePlan(ctx: OnboardingContext): Promise<any> {
-    if (!this.isConfigured || !this.prompts?.tenMinute) return null;
+    if (!this.isConfigured || !this.prompts?.tenMinute) return {
+      steps: [
+        { type: 'calm', text: 'Please add your OPENAI_API_KEY or GEMINI_API_KEY to the .env file to enable the real AI 10-minute coach.' },
+        { type: 'calm', text: 'Currently running in fallback mode with no API key.' }
+      ]
+    };
 
     let prompt = this.prompts.tenMinute
       .replace('{{visa_type}}', ctx.profile?.visaType || 'F1')

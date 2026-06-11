@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
+import { RealtimeModule } from '../realtime/realtime.module';
 import { SessionsController } from './sessions.controller';
 import { SessionsService } from './sessions.service';
 import { PrismaService } from '../prisma.service';
 
 @Module({
+  imports: [RealtimeModule],
   controllers: [SessionsController],
   providers: [SessionsService, PrismaService],
   exports: [SessionsService],

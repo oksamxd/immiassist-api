@@ -4,12 +4,14 @@ import { AuditService } from '../audit/audit.service';
 import * as fs from 'fs';
 import * as path from 'path';
 import { createReadStream } from 'fs';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 
 @Injectable()
 export class DocumentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly realtime: RealtimeGateway,
   ) {
     const uploadsDir = path.join(process.cwd(), 'uploads');
     if (!fs.existsSync(uploadsDir)) {
@@ -79,6 +81,9 @@ export class DocumentsService {
       entityId: doc.id,
       payload: { docType, caseId, fileName: file.originalname },
     });
+
+    this.realtime.notifyTimelineUpdate(caseId, { event: 'DOCUMENT_UPLOADED', docType });
+    this.realtime.notifyCaseUpdate(caseId, { event: 'DOCUMENT_UPLOADED' });
 
     return doc;
   }
@@ -202,6 +207,9 @@ export class DocumentsService {
       entityId: id,
       payload: { status, notes, docType: doc.documentType },
     });
+
+    this.realtime.notifyTimelineUpdate(doc.caseId, { event: `DOCUMENT_${status}`, docType: doc.documentType });
+    this.realtime.notifyCaseUpdate(doc.caseId, { event: `DOCUMENT_${status}` });
 
     return updated;
   }

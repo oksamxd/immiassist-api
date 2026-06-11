@@ -4,6 +4,7 @@ import { WorkflowService } from '../workflow/workflow.service';
 import { AuditService } from '../audit/audit.service';
 import { AiService } from '../ai/ai.service';
 import { v4 as uuidv4 } from 'uuid';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 
 export interface CreateCaseDto {
   caseType: string;
@@ -29,6 +30,7 @@ export class CasesService {
     private readonly workflow: WorkflowService,
     private readonly audit: AuditService,
     private readonly ai: AiService,
+    private readonly realtime: RealtimeGateway,
   ) {}
 
   private generateCaseNumber(): string {
@@ -71,6 +73,7 @@ export class CasesService {
         metadata: { caseType: dto.caseType },
       },
     });
+    this.realtime.notifyTimelineUpdate(caseRecord.id, { event: 'CASE_CREATED' });
 
     await this.audit.log({
       actorId: userId,
@@ -100,6 +103,7 @@ export class CasesService {
         metadata: { plan },
       },
     });
+    this.realtime.notifyTimelineUpdate(caseId, { event: 'TEN_MINUTE_PREP_STARTED' });
 
     return { success: true, plan };
   }
@@ -122,6 +126,7 @@ export class CasesService {
         metadata: { issueType, risk },
       },
     });
+    this.realtime.notifyTimelineUpdate(caseId, { event: 'AIRPORT_LIVE_TRIGGERED' });
 
     if (risk.risk_level === 'HIGH' || risk.risk_level === 'CRITICAL') {
       await this.prisma.case.update({ where: { id: caseId }, data: { priority: 'URGENT' } });
@@ -135,6 +140,7 @@ export class CasesService {
           metadata: { risk },
         },
       });
+      this.realtime.notifyTimelineUpdate(caseId, { event: 'RISK_LEVEL_ESCALATED' });
     }
 
     return { success: true, risk };
@@ -249,6 +255,7 @@ export class CasesService {
           actorId,
         },
       });
+      this.realtime.notifyTimelineUpdate(caseId, { event: 'CASE_NOTE_ADDED' });
     }
 
     await this.audit.log({ actorId, action: 'CASE_UPDATED', entityType: 'Case', entityId: caseId, payload: dto });
