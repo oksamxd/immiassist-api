@@ -570,7 +570,7 @@ ${this.knowledgeBase}`;
 
     try {
       const formData = new FormData();
-      const blob = new Blob([buffer], { type: 'audio/webm' }); // Browsers usually record webm
+      const blob = new Blob([new Uint8Array(buffer)], { type: 'audio/webm' }); // Browsers usually record webm
       formData.append('file', blob, filename || 'audio.webm');
       formData.append('model', 'whisper-1');
       formData.append('language', 'en');
